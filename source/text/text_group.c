@@ -219,6 +219,13 @@ static wchar_t *fallback_string(long tag_index, short string_index)
 		return custom_edition_maps_name(string_index);
 	if (!csstrcasecmp(tag_name, LEVEL_DESCRIPTIONS_TAG_NAME) || !csstrcasecmp(tag_name, PC_LEVEL_DESCRIPTIONS_TAG_NAME))
 		return custom_edition_maps_description(string_index);
+	if (!csstrcasecmp(tag_name, MULTIPLAYER_GAME_TEXT_TAG_NAME))
+	{
+		if (string_index == 184)
+			return L"Conquest";
+		if (string_index == 185)
+			return L"Tickets";
+	}
 	if (fallback_index < 0 ||
 		fallback_index >= (short)NUMBEROF(fallback_multiplayer_game_text_strings) ||
 		csstrcasecmp(tag_name, MULTIPLAYER_GAME_TEXT_TAG_NAME))
@@ -249,6 +256,18 @@ char *string_list_get_string(long tag_index, short string_index)
 			{
 				result = entry->string.address;
 				result[entry->string.size - 1] = '\0';
+			}
+		}
+		else
+		{
+			char const *tag_name = tag_get_name(tag_index);
+
+			if (!csstrcasecmp(tag_name, MULTIPLAYER_GAME_TEXT_TAG_NAME))
+			{
+				if (string_index == 184)
+					return "Conquest";
+				if (string_index == 185)
+					return "Tickets";
 			}
 		}
 	}

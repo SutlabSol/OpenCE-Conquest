@@ -5827,7 +5827,8 @@ void game_engine_render_nav_points(
 							local_player_index,
 							&global_goal[goal_index].position,
 							global_goal[goal_index].nav_index,
-							render_type);
+							render_type,
+							global_goal[goal_index].team_index);
 					}
 				}
 			}
@@ -6876,9 +6877,10 @@ struct game_variant *build_game_variant_conquest(
 	SET_FLAG(result.universal_variant.flags, _game_variant_always_invisible_bit, FALSE);
 	SET_FLAG(result.universal_variant.flags, _game_variant_generic_starting_equipment_bit, FALSE);
 	result.universal_variant.goal_radar = _radar_nav_point;
-	result.universal_variant.score_to_win = 200;
+	result.universal_variant.score_to_win = 100;
 	result.universal_variant.teams = TRUE;
 	result.universal_variant.vehicle_set = _game_engine_vehicles_warthog;
+	result.game_engine_variant.conquest.base_count = 5;
 	result.flags = 1;
 	result.universal_variant.health = 1.0f;
 	result.universal_variant.lives = 0;
@@ -7302,6 +7304,13 @@ void game_engine_variant_cleanup(
 	case game_engine_conquest:
 		/* port: conquest is always a team game */
 		variant->universal_variant.teams = TRUE;
+		if (variant->game_engine_variant.conquest.base_count < 3 ||
+			variant->game_engine_variant.conquest.base_count > 6)
+		{
+			variant->game_engine_variant.conquest.base_count = 5;
+		}
+		if (variant->universal_variant.score_to_win <= 0)
+			variant->universal_variant.score_to_win = 100;
 		break;
 	}
 

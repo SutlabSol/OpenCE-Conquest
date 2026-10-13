@@ -134,8 +134,7 @@ struct race_variant
 /* port: conquest gametype's variant options */
 struct conquest_variant
 {
-	/* currently unused — ticket count comes from universal_variant.score_to_win */
-	long reserved;
+	long base_count;
 };
 
 union game_engine_variant

@@ -2715,6 +2715,17 @@ void rasterizer_transparent_geometry_group_draw(
 									short fade_source = shader_transparent_chicago->chicago.framebuffer_fade_source;
 									unsigned long combiner_constant = 0;
 
+									if (group->animation && group->animation->colors)
+									{
+										pixel_shader.constant_0[stage_count] = real_a_rgb_color_to_pixel32(
+											group->animation->values ? group->animation->values[0] : 1.0f,
+											&group->animation->colors[0]);
+									}
+									else
+									{
+										pixel_shader.constant_0[stage_count] = 0xFFFFFFFF;
+									}
+
 									vsh_constants__texscale[0][0] = 0.0f;
 									vsh_constants__texscale[0][1] = 0.0f;
 									vsh_constants__texscale[0][2] = 0.0f;

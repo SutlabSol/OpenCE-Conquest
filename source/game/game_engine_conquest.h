@@ -23,7 +23,7 @@ port: new gametype added by the OpenCE-Conquest fork.
 
 enum
 {
-	CONQUEST_MAXIMUM_BASES      = 5,
+	CONQUEST_MAXIMUM_BASES      = 6,
 	CONQUEST_MAXIMUM_HILL_POINTS= 12,  /* hull-points per base polygon */
 	CONQUEST_CONTESTED          = 2,   /* capturing_team: both teams present */
 };

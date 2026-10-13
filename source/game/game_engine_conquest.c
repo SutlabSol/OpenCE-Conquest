@@ -213,6 +213,8 @@ static boolean conquest_engine_initialize_for_new_map(
 	short hill_id_count = 0;
 	long flag_index;
 	long base_index;
+	short configured_bases;
+	long starting_tickets;
 
 	csmemset(&cq, 0, sizeof(cq));
 
@@ -245,7 +247,11 @@ static boolean conquest_engine_initialize_for_new_map(
 		}
 	}
 
-	cq.base_count = hill_id_count;
+	configured_bases = (short)game_engine_get_variant()->game_engine_variant.conquest.base_count;
+	if (configured_bases < 3 || configured_bases > CONQUEST_MAXIMUM_BASES)
+		configured_bases = 5;
+	cq.base_count = MIN(hill_id_count, configured_bases);
+	cq.base_count = PIN(cq.base_count, 0, CONQUEST_MAXIMUM_BASES);
 	for (base_index = 0; base_index < cq.base_count; base_index++)
 	{
 		struct conquest_base *base = &cq.bases[base_index];
@@ -257,8 +263,10 @@ static boolean conquest_engine_initialize_for_new_map(
 		conquest_build_base(base);
 	}
 
-	cq.tickets[conquest_team_red] = CONQUEST_STARTING_TICKETS;
-	cq.tickets[conquest_team_blue] = CONQUEST_STARTING_TICKETS;
+	starting_tickets = game_engine_get_variant()->universal_variant.score_to_win > 0 ?
+		game_engine_get_variant()->universal_variant.score_to_win : CONQUEST_STARTING_TICKETS;
+	cq.tickets[conquest_team_red] = starting_tickets;
+	cq.tickets[conquest_team_blue] = starting_tickets;
 
 	render_dynamic_quad_initialize();
 
@@ -743,13 +751,28 @@ static void conquest_update_hud_goals(
 		struct conquest_base const *base = &cq.bases[base_index];
 		real_point3d position = base->center;
 		char const *arrow;
+		short team_index;
 
-		if (base->state == conquest_base_red)
-			arrow = "default";
-		else if (base->state == conquest_base_blue)
-			arrow = "flag_blue";
-		else
+		if (base->capturing_team == CONQUEST_CONTESTED)
+		{
 			arrow = "crown_blue";
+			team_index = CONQUEST_CONTESTED;
+		}
+		else if (base->state == conquest_base_red)
+		{
+			arrow = "default";
+			team_index = conquest_team_red;
+		}
+		else if (base->state == conquest_base_blue)
+		{
+			arrow = "flag_blue";
+			team_index = conquest_team_blue;
+		}
+		else
+		{
+			arrow = "crown_blue";
+			team_index = NONE;
+		}
 
 		game_engine_set_goal_position(
 			(short)base_index,
@@ -757,7 +780,7 @@ static void conquest_update_hud_goals(
 			0.0f,
 			arrow,
 			NONE,
-			NONE,
+			team_index,
 			NONE);
 	}
 

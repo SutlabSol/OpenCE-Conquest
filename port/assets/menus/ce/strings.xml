@@ -720,7 +720,7 @@
 		<string text="Sometimes you have to kill. \nNow is one of those times. \nWhack or be whacked.\nCurrent Rules:"/>
 		<string text="Become one with the ball. And \nkeep the ball away from every-\none else while you're at it.\nCurrent Rules:"/>
 		<string text="Complete the required number \nof laps before your opponents, \nblowing away the competition.\nCurrent Rules:"/>
-		<string text=" \n \n \nCurrent Rules:"/>
+		<string text="Capture and hold territory \npoints to bleed the enemy's \ntickets to zero.\nCurrent Rules:"/>
 	</strings>
 	<strings name="main_menu/settings_select/multiplayer_setup/playlist_edit/game_type_select/gametype_select_list_options">
 		<string text="CAPTURE THE FLAG"/>
@@ -728,7 +728,50 @@
 		<string text="SLAYER"/>
 		<string text="ODDBALL"/>
 		<string text="RACE"/>
-		<string text="SAVE CHANGES"/>
+		<string text="CONQUEST"/>
+	</strings>
+	<strings name="main_menu/settings_select/multiplayer_setup/playlist_edit/conquest_edit/cap_conquest">
+		<string text="There will be 3 territory bases to capture on the map."/>
+		<string text="There will be 4 territory bases to capture on the map."/>
+		<string text="There will be 5 territory bases to capture on the map."/>
+		<string text="There will be 6 territory bases to capture on the map."/>
+		<string text="Each team starts with 50 tickets."/>
+		<string text="Each team starts with 75 tickets."/>
+		<string text="Each team starts with 100 tickets."/>
+		<string text="Each team starts with 150 tickets."/>
+		<string text="Each team starts with 200 tickets."/>
+		<string text="Each team starts with 250 tickets."/>
+		<string text="Each team starts with 300 tickets."/>
+		<string text="Each team starts with 400 tickets."/>
+		<string text="Each team starts with 500 tickets."/>
+		<string text="The game will have no time limit.  It will only end\nwhen someone wins."/>
+		<string text="This game will have a 10 minute time limit.  It will\nend after the time limit is up or someone wins."/>
+		<string text="This game will have a 15 minute time limit.  It will\nend after the time limit is up or someone wins."/>
+		<string text="This game will have a 20 minute time limit.  It will\nend after the time limit is up or someone wins."/>
+		<string text="This game will have a 25 minute time limit.  It will\nend after the time limit is up or someone wins."/>
+		<string text="This game will have a 30 minute time limit.  It will\nend after the time limit is up or someone wins."/>
+		<string text="This game will have a 45 minute time limit.  It will\nend after the time limit is up or someone wins."/>
+	</strings>
+	<strings name="main_menu/settings_select/multiplayer_setup/playlist_edit/conquest_edit/conquest_labels">
+		<string text="BASES:"/>
+		<string text="TICKETS:"/>
+	</strings>
+	<strings name="main_menu/settings_select/multiplayer_setup/playlist_edit/conquest_edit/var_base_count">
+		<string text="3 BASES"/>
+		<string text="4 BASES"/>
+		<string text="5 BASES"/>
+		<string text="6 BASES"/>
+	</strings>
+	<strings name="main_menu/settings_select/multiplayer_setup/playlist_edit/conquest_edit/var_tickets">
+		<string text="50 TICKETS"/>
+		<string text="75 TICKETS"/>
+		<string text="100 TICKETS"/>
+		<string text="150 TICKETS"/>
+		<string text="200 TICKETS"/>
+		<string text="250 TICKETS"/>
+		<string text="300 TICKETS"/>
+		<string text="400 TICKETS"/>
+		<string text="500 TICKETS"/>
 	</strings>
 	<strings name="main_menu/settings_select/multiplayer_setup/playlist_edit/koth_edit/cap_koth">
 		<string text="During the course of the game, the Hill will teleport to\na random location."/>

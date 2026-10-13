@@ -4762,6 +4762,11 @@ static struct gametype_option const gametype_options[] =
 	/* vehicle options (the side's set and counts: vehicles_update) */
 	{ "vehicles_respawn_spinner", _option_short, OPTIONS_FIELD(vehicle_respawn_time), 0, 7,
 		{ 0, 30, 60, 90, 120, 180, 300 } },
+	/* conquest */
+	{ "conquest_base_count_spinner", _option_long, VARIANT_FIELD(game_engine_variant.conquest.base_count), 0, 4,
+		{ 3, 4, 5, 6 } },
+	{ "conquest_score_to_win_spinner", _option_long, VARIANT_FIELD(universal_variant.score_to_win), 0, 9,
+		{ 50, 75, 100, 150, 200, 250, 300, 400, 500 } },
 };
 
 /* an option of the host's own setting: the value shown for it (the one
@@ -5315,9 +5320,9 @@ static char const *const engine_items[] =
 {
 	/* (the type list's rows, in order: game_engine_ctf and so on) */
 	"gametype_select_ctf_item", "gametype_select_koth_item", "gametype_select_slayer_item",
-	"gametype_select_oddball_item", "gametype_select_race_item"
+	"gametype_select_oddball_item", "gametype_select_race_item", "gametype_select_conquest_item"
 };
-static long const engine_of_item[] = { 1, 4, 2, 3, 5 };
+static long const engine_of_item[] = { 1, 4, 2, 3, 5, 8 };
 
 /* "mp profile init game engine": the gametype's type focused */
 static boolean gametype_engine_init(struct widget_instance *list)
@@ -5351,6 +5356,12 @@ static boolean gametype_engine_set(struct widget_instance *item)
 			if (variant->game_engine_index != engine_of_item[index])
 				csmemset(&variant->game_engine_variant, 0, sizeof(variant->game_engine_variant));
 			variant->game_engine_index = engine_of_item[index];
+			if (variant->game_engine_index == 8)
+			{
+				variant->game_engine_variant.conquest.base_count = 5;
+				variant->universal_variant.score_to_win = 100;
+				variant->universal_variant.teams = 1;
+			}
 			return TRUE;
 		}
 	}
@@ -5362,7 +5373,7 @@ ui\multiplayer_game_text, as the Xbox's: capture the flag 3, slayer 4,
 oddball 5, king of the hill 6, race 7, unknown 8) */
 static void gametype_engine_name(struct widget_instance *text_box)
 {
-	static short const strings[] = { 8, 3, 4, 5, 6, 7, 8, 8, 6 };
+	static short const strings[] = { 8, 3, 4, 5, 6, 7, 8, 8, 184 };
 	struct game_variant *variant = edit_variant();
 
 	if (variant)
