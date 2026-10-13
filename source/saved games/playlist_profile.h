@@ -14,7 +14,11 @@ header included in hcex build.
 
 /* ---------- constants */
 
-/* ---------- macros */
+enum
+{
+	/* port: synthetic playlist profile index for Conquest so it appears in the gametype list */
+	CONQUEST_PLAYLIST_PROFILE_INDEX = (long)0xCFFF0001
+};
 
 /* ---------- structures */
 

@@ -2782,7 +2782,7 @@ static void gametype_list_update(struct widget_instance *list)
 			long engine = PIN(variant.game_engine_index, 0, 8);
 
 			if ((widget = named(description, "gametype_right_pic", 0)) != NULL)
-				widget->animation.current_frame_index = (short)engine;
+				widget->animation.current_frame_index = (short)(engine == 8 ? 4 : engine);
 			usnprintf(text, NUMBEROF(text) - 1, L"%s\r\n%s\r\nScore to win: %ld", engine_names[engine],
 				variant.universal_variant.teams ? L"Teams" : L"Free for all", variant.universal_variant.score_to_win);
 			text[NUMBEROF(text) - 1] = 0;
@@ -5205,7 +5205,7 @@ static void gametype_edit_list_update(struct widget_instance *list)
 			long engine = PIN(variant.game_engine_index, 0, 8);
 
 			if ((widget = named(description, "gametype_right_pic", 0)) != NULL)
-				widget->animation.current_frame_index = (short)engine;
+				widget->animation.current_frame_index = (short)(engine == 8 ? 4 : engine);
 			usnprintf(text, NUMBEROF(text) - 1, L"%s\r\n%s\r\nScore to win: %ld", engine_names[engine],
 				variant.universal_variant.teams ? L"Teams" : L"Free for all", variant.universal_variant.score_to_win);
 			text[NUMBEROF(text) - 1] = 0;
