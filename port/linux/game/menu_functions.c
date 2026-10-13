@@ -5324,7 +5324,7 @@ static char const *const engine_items[] =
 {
 	/* (the type list's rows, in order: game_engine_ctf and so on) */
 	"gametype_select_ctf_item", "gametype_select_koth_item", "gametype_select_slayer_item",
-	"gametype_select_oddball_item", "gametype_select_race_item", "gametype_select_territories_item",
+	"gametype_select_oddball_item", "gametype_select_race_item", "gametype_select_ter_item",
 	"gametype_select_conquest_item"
 };
 static long const engine_of_item[] = { 1, 4, 2, 3, 5, 8, 8 };
@@ -5356,7 +5356,8 @@ static boolean gametype_engine_set(struct widget_instance *item)
 		return campaign_fail();
 	for (index = 0; index < NUMBEROF(engine_items); index++)
 	{
-		if (!strcmp(item->name, engine_items[index]))
+		if (!strcmp(item->name, engine_items[index]) ||
+			(index == 5 && (!strncmp(item->name, "gametype_select_ter", 19) || !strcmp(item->name, "gametype_select_territories_item"))))
 		{
 			if (variant->game_engine_index != engine_of_item[index])
 				csmemset(&variant->game_engine_variant, 0, sizeof(variant->game_engine_variant));

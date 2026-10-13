@@ -847,7 +847,7 @@ static void playlist_gametype_select_menu_update_extended_description(
 
 		description_child = list_widget->parameters.list.extended_description->child;
 		description_child->parameters.text_box.string_list_index = index;
-		description_child->next->animation.current_frame_index = index;
+		description_child->next->animation.current_frame_index = (index == 5) ? 1 : index;
 	}
 	return;
 }
