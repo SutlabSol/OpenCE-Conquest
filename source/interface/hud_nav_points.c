@@ -679,8 +679,7 @@ void custom_render_nav_point(
 	short local_player_index,
 	real_point3d const *position,
 	short nav_index,
-	short waypoint_type,
-	short team_index)
+	short waypoint_type)
 {
 	long return_eip = get_return_eip();
 	long stack_buffer[STACK_BUFFER_LENGTH];
@@ -822,24 +821,6 @@ void custom_render_nav_point(
 			point.y = (short)(long)screen_position.y;
 			alpha = (byte)PIN(fast_ftol_C(arrow->opacity)*255, 0, 255);
 			pixel32_to_real_rgb_color(arrow->color, &rgb_temp);
-			if (team_index == 0)
-			{
-				rgb_temp.red = 1.0f;
-				rgb_temp.green = 0.2f;
-				rgb_temp.blue = 0.2f;
-			}
-			else if (team_index == 1)
-			{
-				rgb_temp.red = 0.2f;
-				rgb_temp.green = 0.5f;
-				rgb_temp.blue = 1.0f;
-			}
-			else if (team_index == 2)
-			{
-				rgb_temp.red = 1.0f;
-				rgb_temp.green = 0.9f;
-				rgb_temp.blue = 0.1f;
-			}
 			fade = 1.0f-arrow->fade;
 			rgb_temp.red *= PIN(fade, 0.0f, 1.0f);
 			rgb_temp.green *= PIN(fade, 0.0f, 1.0f);
@@ -982,8 +963,7 @@ void hud_render_nav_points(
 				local_player_index,
 				&position,
 				nav_point->nav_index,
-				nav_point->screen_type,
-				NONE);
+				nav_point->screen_type);
 		}
 	}
 

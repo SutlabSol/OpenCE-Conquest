@@ -751,28 +751,13 @@ static void conquest_update_hud_goals(
 		struct conquest_base const *base = &cq.bases[base_index];
 		real_point3d position = base->center;
 		char const *arrow;
-		short team_index;
 
-		if (base->capturing_team == CONQUEST_CONTESTED)
-		{
-			arrow = "crown_blue";
-			team_index = CONQUEST_CONTESTED;
-		}
-		else if (base->state == conquest_base_red)
-		{
+		if (base->state == conquest_base_red)
 			arrow = "default";
-			team_index = conquest_team_red;
-		}
 		else if (base->state == conquest_base_blue)
-		{
 			arrow = "flag_blue";
-			team_index = conquest_team_blue;
-		}
 		else
-		{
 			arrow = "crown_blue";
-			team_index = NONE;
-		}
 
 		game_engine_set_goal_position(
 			(short)base_index,
@@ -780,25 +765,18 @@ static void conquest_update_hud_goals(
 			0.0f,
 			arrow,
 			NONE,
-			team_index,
+			NONE,
 			NONE);
 	}
 
 	return;
 }
 
-/* the king of the hill's fence (game_engine_king.c's post_rasterize) of a
-base, its animation colour grey fading to the owner's colour with the capture
-meter (yellow with both teams on the base) */
+/* the king of the hill's fence (game_engine_king.c's post_rasterize) of a base */
 static void conquest_render_base_fence(
 	struct conquest_base const *base,
 	long shader_index)
 {
-	real_rgb_color colors[4];
-	real values[4];
-	struct render_animation animation;
-	real_rgb_color target;
-	real fraction;
 	real perimeter = 0.0f;
 	real accumulated_distance = 0.0f;
 	real inverse_segment_count;
@@ -806,41 +784,9 @@ static void conquest_render_base_fence(
 	real previous_u = 0.0f;
 	long point_count = base->point_count;
 	long point_index;
-	long i;
 
 	if (point_count < 2)
 		return;
-
-	fraction = (real)(base->capture_progress < 0 ? -base->capture_progress : base->capture_progress)/
-		(real)CONQUEST_CAPTURE_TICKS;
-	if (base->capturing_team == CONQUEST_CONTESTED)
-	{
-		target.red = 1.0f;
-		target.green = 0.9f;
-		target.blue = 0.1f;
-		fraction = 1.0f;
-	}
-	else if (base->capture_progress > 0)
-	{
-		target.red = 1.0f;
-		target.green = 0.1f;
-		target.blue = 0.1f;
-	}
-	else
-	{
-		target.red = 0.1f;
-		target.green = 0.2f;
-		target.blue = 1.0f;
-	}
-	for (i = 0; i < 4; i++)
-	{
-		colors[i].red = 0.5f + (target.red - 0.5f)*fraction;
-		colors[i].green = 0.5f + (target.green - 0.5f)*fraction;
-		colors[i].blue = 0.5f + (target.blue - 0.5f)*fraction;
-		values[i] = fraction;
-	}
-	animation.colors = colors;
-	animation.values = values;
 
 	for (point_index = 0; point_index < point_count; point_index++)
 	{
@@ -891,7 +837,7 @@ static void conquest_render_base_fence(
 			vertices,
 			shader_index,
 			NULL,
-			&animation,
+			NULL,
 			1.0f/inverse_segment_count,
 			1.0f);
 	}
