@@ -2717,9 +2717,15 @@ void rasterizer_transparent_geometry_group_draw(
 
 									if (group->animation && group->animation->colors)
 									{
+										real_rgb_color safe_color;
+										real safe_alpha = group->animation->values ?
+											PIN(group->animation->values[0], 0.0f, 1.0f) : 1.0f;
+										safe_color.red = PIN(group->animation->colors[0].red, 0.0f, 1.0f);
+										safe_color.green = PIN(group->animation->colors[0].green, 0.0f, 1.0f);
+										safe_color.blue = PIN(group->animation->colors[0].blue, 0.0f, 1.0f);
 										pixel_shader.constant_0[stage_count] = real_a_rgb_color_to_pixel32(
-											group->animation->values ? group->animation->values[0] : 1.0f,
-											&group->animation->colors[0]);
+											safe_alpha,
+											&safe_color);
 									}
 									else
 									{

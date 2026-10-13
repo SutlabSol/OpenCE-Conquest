@@ -821,29 +821,29 @@ pixel32 real_a_rgb_color_to_pixel32(
 	real_rgb_color const *color)
 {
 	real scale = 255.0f;
+	real clamped_alpha;
+	real_rgb_color clamped_color;
 	pixel32 result;
 
-	match_assert(
-		"..\\bitmaps\\bitmaps_inlines.h",
-		243,
-		alpha>=0.0f && alpha<=1.0f);
-	match_vassert(
-		"..\\bitmaps\\bitmaps_inlines.h",
-		244,
-		valid_real_rgb_color(color),
-		csprintf(
-			temporary,
-			"%s: assert_valid_real_rgb_color(%f, %f, %f)",
-			"color",
-			color->red,
-			color->green,
-			color->blue));
+	clamped_alpha = PIN(alpha, 0.0f, 1.0f);
+	if (color)
+	{
+		clamped_color.red = PIN(color->red, 0.0f, 1.0f);
+		clamped_color.green = PIN(color->green, 0.0f, 1.0f);
+		clamped_color.blue = PIN(color->blue, 0.0f, 1.0f);
+	}
+	else
+	{
+		clamped_color.red = 1.0f;
+		clamped_color.green = 1.0f;
+		clamped_color.blue = 1.0f;
+	}
 
 	result = (pixel32)(
-		((long)__builtin_rint((double)color->blue * scale) & 0xff) |
-		(((long)__builtin_rint((double)color->green * scale) & 0xff) << 8) |
-		(((long)__builtin_rint((double)color->red * scale) & 0xff) << 16) |
-		((long)__builtin_rint((double)alpha * scale) << 24));
+		((long)__builtin_rint((double)clamped_color.blue * scale) & 0xff) |
+		(((long)__builtin_rint((double)clamped_color.green * scale) & 0xff) << 8) |
+		(((long)__builtin_rint((double)clamped_color.red * scale) & 0xff) << 16) |
+		((long)__builtin_rint((double)clamped_alpha * scale) << 24));
 
 	return result;
 }
