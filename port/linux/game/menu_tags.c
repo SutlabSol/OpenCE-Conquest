@@ -374,9 +374,11 @@ static char const *const port_function_names[] =
 	"mp profile init game engine", "mp profile set game engine", "mp profile init ctf rules",
 	"mp profile init koth rules", "mp profile init slayer rules", "mp profile init oddball rules",
 	"mp profile init racing rules", "mp profile init player opts", "mp profile init item options",
-	"mp profile init indicator opts", "mp profile set ctf rules", "mp profile set koth rules",
+	"mp profile init indicator opts", "mp profile init territories rules", "mp profile init conquest rules",
+	"mp profile set ctf rules", "mp profile set koth rules",
 	"mp profile set slayer rules", "mp profile set oddball rules", "mp profile set racing rules",
 	"mp profile set player options", "mp profile set item options", "mp profile set indicator opts",
+	"mp profile set territories rules", "mp profile set conquest rules",
 	/* (Settings' OK: the Xbox's fails when the profile has no changes, the
 	settings' screens having written theirs to config.toml) */
 	"player profile save changes",

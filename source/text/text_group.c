@@ -222,7 +222,7 @@ static wchar_t *fallback_string(long tag_index, short string_index)
 	if (!csstrcasecmp(tag_name, MULTIPLAYER_GAME_TEXT_TAG_NAME))
 	{
 		if (string_index == 184)
-			return L"Conquest";
+			return L"Territories";
 		if (string_index == 185)
 			return L"Tickets";
 	}

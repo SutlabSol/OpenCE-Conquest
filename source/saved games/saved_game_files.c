@@ -973,7 +973,7 @@ wchar_t *saved_game_file_get_display_name(
 	/* port: conquest synthetic profile */
 	if (profile_index == CONQUEST_PLAYLIST_PROFILE_INDEX)
 	{
-		ustrncpy(saved_game_file_display_name, L"Conquest", MAX_GAMENAME - 1);
+		ustrncpy(saved_game_file_display_name, L"Territories", MAX_GAMENAME - 1);
 		saved_game_file_display_name[MAX_GAMENAME - 1] = 0;
 		return saved_game_file_display_name;
 	}

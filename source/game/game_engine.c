@@ -7125,8 +7125,8 @@ struct game_variant *game_engine_get_variant_by_name(
 		result = *build_game_variant_king(&temporary);
 	else if (csstrcmp(name, "team_king") == 0)
 		result = *build_game_variant_team_king(&temporary);
-	/* port: conquest */
-	else if (csstrcmp(name, "conquest") == 0)
+	/* port: conquest / territories */
+	else if (csstrcmp(name, "conquest") == 0 || csstrcmp(name, "territories") == 0)
 		result = *build_game_variant_conquest(&temporary);
 
 	*variant = result;

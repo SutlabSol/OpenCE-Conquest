@@ -2275,9 +2275,9 @@ void platform_text_field(int typing, int password);
 int config_boolean(char const *name);
 void ui_widget_port_post_button(short controller_index, short button_index);
 
-/* port: index 8 is conquest (game_engine_conquest); 6 and 7 are the Xbox's
+/* port: index 8 is territories (game_engine_conquest); 6 and 7 are the Xbox's
 unused types */
-static wchar_t const *const engine_names[] = { L"", L"CTF", L"SLAYER", L"ODDBALL", L"KING OF THE HILL", L"RACE", L"", L"", L"CONQUEST" };
+static wchar_t const *const engine_names[] = { L"", L"CTF", L"SLAYER", L"ODDBALL", L"KING OF THE HILL", L"RACE", L"", L"", L"TERRITORIES" };
 static short const maximum_players[] = { 2, 4, 8, 12, 16, 24, 32, 48, 64, 96, 128 };
 
 static struct
@@ -4762,7 +4762,11 @@ static struct gametype_option const gametype_options[] =
 	/* vehicle options (the side's set and counts: vehicles_update) */
 	{ "vehicles_respawn_spinner", _option_short, OPTIONS_FIELD(vehicle_respawn_time), 0, 7,
 		{ 0, 30, 60, 90, 120, 180, 300 } },
-	/* conquest */
+	/* territories / conquest */
+	{ "territories_base_count_spinner", _option_long, VARIANT_FIELD(game_engine_variant.conquest.base_count), 0, 4,
+		{ 3, 4, 5, 6 } },
+	{ "territories_score_to_win_spinner", _option_long, VARIANT_FIELD(universal_variant.score_to_win), 0, 9,
+		{ 50, 75, 100, 150, 200, 250, 300, 400, 500 } },
 	{ "conquest_base_count_spinner", _option_long, VARIANT_FIELD(game_engine_variant.conquest.base_count), 0, 4,
 		{ 3, 4, 5, 6 } },
 	{ "conquest_score_to_win_spinner", _option_long, VARIANT_FIELD(universal_variant.score_to_win), 0, 9,
@@ -5320,9 +5324,10 @@ static char const *const engine_items[] =
 {
 	/* (the type list's rows, in order: game_engine_ctf and so on) */
 	"gametype_select_ctf_item", "gametype_select_koth_item", "gametype_select_slayer_item",
-	"gametype_select_oddball_item", "gametype_select_race_item", "gametype_select_conquest_item"
+	"gametype_select_oddball_item", "gametype_select_race_item", "gametype_select_territories_item",
+	"gametype_select_conquest_item"
 };
-static long const engine_of_item[] = { 1, 4, 2, 3, 5, 8 };
+static long const engine_of_item[] = { 1, 4, 2, 3, 5, 8, 8 };
 
 /* "mp profile init game engine": the gametype's type focused */
 static boolean gametype_engine_init(struct widget_instance *list)
