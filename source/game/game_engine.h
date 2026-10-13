@@ -40,9 +40,11 @@ enum game_engine_type
 	game_engine_race,
 	game_engine_terminator,
 	game_engine_stub,
+	/* port: conquest gametype — battlefield-style multi-point territory capture */
+	game_engine_conquest,
 	number_of_game_engines,
 	first_usable_game_engine_index = game_engine_ctf,
-	last_usable_game_engine_index = game_engine_race,
+	last_usable_game_engine_index = game_engine_conquest,
 };
 
 enum get_score_type
@@ -129,6 +131,13 @@ struct race_variant
 	long team_scoring;
 };
 
+/* port: conquest gametype's variant options */
+struct conquest_variant
+{
+	/* currently unused — ticket count comes from universal_variant.score_to_win */
+	long reserved;
+};
+
 union game_engine_variant
 {
 	struct ctf_variant ctf;
@@ -136,6 +145,7 @@ union game_engine_variant
 	struct king_variant king;
 	struct oddball_variant oddball;
 	struct race_variant race;
+	struct conquest_variant conquest;
 };
 
 struct game_variant

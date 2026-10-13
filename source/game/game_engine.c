@@ -3574,6 +3574,11 @@ boolean match_game_type(
 	boolean result;
 	long index;
 
+	/* port: maps tag their spawn points and equipment with the original
+	game types only; conquest plays on those of king of the hill */
+	if (game_type == game_engine_conquest)
+		game_type = game_engine_king;
+
 	if (game_engine)
 	{
 		result = FALSE;
@@ -6857,6 +6862,37 @@ struct game_variant *build_game_variant_team_rally(
 	return variant;
 }
 
+/* port: conquest default variant */
+struct game_variant *build_game_variant_conquest(
+	struct game_variant *variant)
+{
+	struct game_variant result = { 0 };
+
+	result.game_engine_index = game_engine_conquest;
+	SET_FLAG(result.universal_variant.flags, _game_variant_draw_object_in_motion_sensor_bit, TRUE);
+	SET_FLAG(result.universal_variant.flags, _game_variant_allow_friendly_navpoints_bit, TRUE);
+	SET_FLAG(result.universal_variant.flags, _game_variant_infinite_grenades_bit, FALSE);
+	SET_FLAG(result.universal_variant.flags, _game_variant_no_shields_bit, FALSE);
+	SET_FLAG(result.universal_variant.flags, _game_variant_always_invisible_bit, FALSE);
+	SET_FLAG(result.universal_variant.flags, _game_variant_generic_starting_equipment_bit, FALSE);
+	result.universal_variant.goal_radar = _radar_nav_point;
+	result.universal_variant.score_to_win = 200;
+	result.universal_variant.teams = TRUE;
+	result.universal_variant.vehicle_set = _game_engine_vehicles_warthog;
+	result.flags = 1;
+	result.universal_variant.health = 1.0f;
+	result.universal_variant.lives = 0;
+	result.universal_variant.odd_man_out = FALSE;
+	result.universal_variant.respawn_time = 0;
+	result.universal_variant.respawn_time_growth = 0;
+	result.universal_variant.suicide_penalty = 150;
+	result.universal_variant.weapon_set = _game_engine_weapons_normal;
+
+	*variant = result;
+
+	return variant;
+}
+
 long postgame_statistic_get_rating(
 	long player_index,
 	enum postgame_statistic statistic,
@@ -7087,6 +7123,9 @@ struct game_variant *game_engine_get_variant_by_name(
 		result = *build_game_variant_king(&temporary);
 	else if (csstrcmp(name, "team_king") == 0)
 		result = *build_game_variant_team_king(&temporary);
+	/* port: conquest */
+	else if (csstrcmp(name, "conquest") == 0)
+		result = *build_game_variant_conquest(&temporary);
 
 	*variant = result;
 
@@ -7220,7 +7259,10 @@ void game_engine_variant_cleanup(
 	struct game_variant original = *variant;
 
 	variant->human_readable_game_description[NUMBEROF(variant->human_readable_game_description) - 1] = 0;
-	variant->game_engine_index = PIN(variant->game_engine_index, 1, 5);
+	/* port: conquest (index 8) is kept; any other number is pinned to the
+	original's 1..5 */
+	if (variant->game_engine_index != game_engine_conquest)
+		variant->game_engine_index = PIN(variant->game_engine_index, 1, 5);
 	variant->universal_variant.teams = !!variant->universal_variant.teams;
 	variant->universal_variant.odd_man_out = !!variant->universal_variant.odd_man_out;
 	variant->universal_variant.respawn_time_growth = MAX(variant->universal_variant.respawn_time_growth, 0);
@@ -7255,6 +7297,11 @@ void game_engine_variant_cleanup(
 		/* port: the balls' arrays and goals hold no more */
 		variant->game_engine_variant.oddball.ball_spawn_count =
 			PIN(variant->game_engine_variant.oddball.ball_spawn_count, 0, MAXIMUM_ODDBALLS);
+		break;
+
+	case game_engine_conquest:
+		/* port: conquest is always a team game */
+		variant->universal_variant.teams = TRUE;
 		break;
 	}
 
@@ -9523,6 +9570,8 @@ long game_engine_king_write_network_state(byte *buffer, long size);
 boolean game_engine_king_read_network_state(byte const *buffer, long size, boolean first);
 long game_engine_race_write_network_state(byte *buffer, long size);
 boolean game_engine_race_read_network_state(byte const *buffer, long size, boolean first);
+long game_engine_conquest_write_network_state(byte *buffer, long size);
+boolean game_engine_conquest_read_network_state(byte const *buffer, long size, boolean first);
 
 /* the distributed netcode (port/linux/game/network_damage.c): a player's
 score as the game type has it (with its killing blows' messages), 0 for
@@ -9559,6 +9608,7 @@ long game_engine_write_network_state(
 	case game_engine_oddball: written = game_engine_oddball_write_network_state(buffer, size); break;
 	case game_engine_king: written = game_engine_king_write_network_state(buffer, size); break;
 	case game_engine_race: written = game_engine_race_write_network_state(buffer, size); break;
+	case game_engine_conquest: written = game_engine_conquest_write_network_state(buffer, size); break;
 	default: written = 0; break;
 	}
 	return sizeof(postgame_state) + written;
@@ -9586,6 +9636,7 @@ void game_engine_read_network_state(
 	case game_engine_oddball: read = game_engine_oddball_read_network_state(buffer, size, first); break;
 	case game_engine_king: read = game_engine_king_read_network_state(buffer, size, first); break;
 	case game_engine_race: read = game_engine_race_read_network_state(buffer, size, first); break;
+	case game_engine_conquest: read = game_engine_conquest_read_network_state(buffer, size, first); break;
 	default: read = TRUE; break;
 	}
 	/* (a state the game type refused is not had: the first it takes is,
