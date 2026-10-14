@@ -1735,7 +1735,8 @@ static void brokers_list(char *text, size_t size)
 	file = config_file_read(path, &file_size);
 	if (!file)
 	{
-		platform_log("Internet play: the brokers' file %s cannot be read (network.brokers_file)", path);
+		platform_log("Internet play: the brokers' file %s cannot be read (network.brokers_file); using default brokers", path);
+		snprintf(text, size, "%s", "opence.milenko.org:1883,broker.emqx.io:1883,broker.hivemq.com:1883,test.mosquitto.org:1883");
 		return;
 	}
 	for (index = 0; index < file_size && length + 1 < size; index++)
