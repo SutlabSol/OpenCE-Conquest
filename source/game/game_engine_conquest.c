@@ -369,20 +369,21 @@ static void conquest_engine_update(
 				blue_bases++;
 		}
 
-		/* Scaled bleed interval based on points controlled difference:
-		 * diff 1: 1.0x rate = 90 ticks (3.00s)
-		 * diff 2: 1.2x rate = 75 ticks (2.50s)
-		 * diff 3: 1.4x rate = 64 ticks (2.14s)
-		 * diff 4: 1.6x rate = 56 ticks (1.87s)
-		 * diff 5: 1.8x rate = 50 ticks (1.67s)
-		 * diff 6: 2.0x rate = 45 ticks (1.50s)
+		/* Scaled bleed intervals:
+		 * index 0: standard rate (1.0x) = 90 ticks (3.00s)
+		 * index 1: slightly increased (1.2x) = 75 ticks (2.50s)
+		 * index 2: increased (1.4x) = 64 ticks (2.14s)
+		 * index 3: increased (1.6x) = 56 ticks (1.87s)
+		 * index 4: increased (1.8x) = 50 ticks (1.67s)
+		 * index 5: increased (2.0x) = 45 ticks (1.50s)
 		 */
 		static short const conquest_bleed_intervals[] = { 90, 75, 64, 56, 50, 45 };
 
 		/* ticket bleed logic:
-		 * - if one team has more bases, the deficit team bleeds at the scaled rate
-		 * - if both teams have an equal number of bases (> 0), both teams bleed at base rate (diff 1 = 90 ticks)
-		 * - if neither team has captured any bases, neither bleeds
+		 * - if enemy controls 0 bases: you do not bleed
+		 * - if enemy controls >= 1 bases:
+		 *   * if you control equal or more bases: you bleed at standard rate (1.0x = 90 ticks)
+		 *   * if enemy controls more bases: you bleed at increased rate based on deficit
 		 */
 		for (team_index = 0; team_index < 2; team_index++)
 		{
@@ -390,14 +391,20 @@ static void conquest_engine_update(
 			long enemy_bases = team_index == conquest_team_red ? blue_bases : red_bases;
 			short interval = 0;
 
-			if (enemy_bases > own_bases)
+			if (enemy_bases > 0)
 			{
-				long diff = PIN(enemy_bases - own_bases, 1, 6);
-				interval = conquest_bleed_intervals[diff - 1];
-			}
-			else if (enemy_bases == own_bases && (own_bases > 0 || enemy_bases > 0))
-			{
-				interval = conquest_bleed_intervals[0]; /* base rate: 90 ticks (3.0s) */
+				if (own_bases >= enemy_bases)
+				{
+					/* Standard rate: you hold equal or more bases, but enemy holds at least 1 */
+					interval = conquest_bleed_intervals[0];
+				}
+				else
+				{
+					/* Deficit: enemy holds more bases than you */
+					long effective_diff = own_bases > 0 ? (enemy_bases - own_bases) : (enemy_bases - 1);
+					long index = PIN(effective_diff, 0, (long)NUMBEROF(conquest_bleed_intervals) - 1);
+					interval = conquest_bleed_intervals[index];
+				}
 			}
 
 			if (interval > 0)
