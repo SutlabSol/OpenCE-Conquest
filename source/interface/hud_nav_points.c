@@ -114,6 +114,7 @@ symbols in this file:
 #include "cache/texture_cache.h"
 #include "tag_files/tag_groups.h"
 #include "interface/hud.h"
+#include "interface/interface.h"
 #include "interface/hud_definitions.h"
 #include "bitmaps/bitmap_color_conversion.h"
 #include "interface/hud_draw.h"
@@ -695,8 +696,24 @@ void custom_render_nav_point(
 	real horizontal_component;
 	real radius_product;
 	real theta;
+	long player_index;
+	long local_team;
+	boolean is_friendly_base = FALSE;
+	real_rectangle2d friendly_clip;
+
+	friendly_clip.x0 = 0.0f;
+	friendly_clip.x1 = 1.0f;
+	friendly_clip.y0 = 0.0f;
+	friendly_clip.y1 = 1.0f;
 
 	csmemset(stack_buffer, 0x62, sizeof(stack_buffer));
+
+	player_index = local_player_get_player_index(local_player_index);
+	local_team = (player_index != NONE) ? player_get(player_index)->team_index : NONE;
+	if (game_engine_is_conquest() && local_team != NONE && team_index == local_team)
+	{
+		is_friendly_base = TRUE;
+	}
 
 	arrow = TAG_BLOCK_GET_ELEMENT(
 		&hud_globals->waypoint.arrows,
@@ -803,12 +820,23 @@ void custom_render_nav_point(
 		struct bitmap_data const *bitmap = NULL;
 		real_rectangle2d const *clip = NULL;
 
-		hud_retrieve_bitmap_and_bounding_rect(
-			bitmap_group_index,
-			arrow->sequence_indices[waypoint_type],
-			0,
-			&bitmap,
-			&clip);
+		if (is_friendly_base)
+		{
+			bitmap = bitmap_group_get_bitmap_from_sequence(
+				interface_get_tag_index(_interface_bitmap_multiplayer_hud),
+				0,
+				0);
+			clip = &friendly_clip;
+		}
+		else
+		{
+			hud_retrieve_bitmap_and_bounding_rect(
+				bitmap_group_index,
+				arrow->sequence_indices[waypoint_type],
+				0,
+				&bitmap,
+				&clip);
+		}
 
 		if (bitmap && _texture_cache_bitmap_get_hardware_format(
 			(struct bitmap_data *)bitmap, FALSE, TRUE))
@@ -821,39 +849,77 @@ void custom_render_nav_point(
 			point.x = (short)(long)screen_position.x;
 			point.y = (short)(long)screen_position.y;
 			alpha = (byte)PIN(fast_ftol_C(arrow->opacity)*255, 0, 255);
-			pixel32_to_real_rgb_color(arrow->color, &rgb_temp);
-			if (team_index == 0)
-			{
-				rgb_temp.red = 1.0f;
-				rgb_temp.green = 0.2f;
-				rgb_temp.blue = 0.2f;
-			}
-			else if (team_index == 1)
+			fade = 1.0f-arrow->fade;
+
+			if (is_friendly_base)
 			{
 				rgb_temp.red = 0.2f;
-				rgb_temp.green = 0.5f;
-				rgb_temp.blue = 1.0f;
-			}
-			else if (team_index == 2)
-			{
-				rgb_temp.red = 1.0f;
-				rgb_temp.green = 0.9f;
-				rgb_temp.blue = 0.1f;
-			}
-			fade = 1.0f-arrow->fade;
-			rgb_temp.red *= PIN(fade, 0.0f, 1.0f);
-			rgb_temp.green *= PIN(fade, 0.0f, 1.0f);
-			rgb_temp.blue *= PIN(fade, 0.0f, 1.0f);
+				rgb_temp.green = 1.0f;
+				rgb_temp.blue = 0.2f;
 
-			hud_draw_bitmap_direct(
-				bitmap,
-				_hud_anchor_center,
-				&point,
-				clip,
-				arrow_scale,
-				theta,
-				((pixel32)alpha<<24) | real_rgb_color_to_pixel32(&rgb_temp),
-				FALSE);
+				interface_draw_bitmap(
+					bitmap,
+					&point,
+					clip,
+					arrow_scale,
+					theta,
+					PIN(fade, 0.0f, 1.0f));
+			}
+			else
+			{
+				pixel32_to_real_rgb_color(arrow->color, &rgb_temp);
+				if (game_engine_is_conquest())
+				{
+					if (team_index != NONE && team_index != 2 /* CONQUEST_CONTESTED */)
+					{
+						/* Enemy controlled base -> Red arrow */
+						rgb_temp.red = 1.0f;
+						rgb_temp.green = 0.2f;
+						rgb_temp.blue = 0.2f;
+					}
+					else
+					{
+						/* Neutral or contested base -> Yellow/White */
+						rgb_temp.red = 1.0f;
+						rgb_temp.green = 0.9f;
+						rgb_temp.blue = 0.1f;
+					}
+				}
+				else
+				{
+					if (team_index == 0)
+					{
+						rgb_temp.red = 1.0f;
+						rgb_temp.green = 0.2f;
+						rgb_temp.blue = 0.2f;
+					}
+					else if (team_index == 1)
+					{
+						rgb_temp.red = 0.2f;
+						rgb_temp.green = 0.5f;
+						rgb_temp.blue = 1.0f;
+					}
+					else if (team_index == 2)
+					{
+						rgb_temp.red = 1.0f;
+						rgb_temp.green = 0.9f;
+						rgb_temp.blue = 0.1f;
+					}
+				}
+				rgb_temp.red *= PIN(fade, 0.0f, 1.0f);
+				rgb_temp.green *= PIN(fade, 0.0f, 1.0f);
+				rgb_temp.blue *= PIN(fade, 0.0f, 1.0f);
+
+				hud_draw_bitmap_direct(
+					bitmap,
+					_hud_anchor_center,
+					&point,
+					clip,
+					arrow_scale,
+					theta,
+					((pixel32)alpha<<24) | real_rgb_color_to_pixel32(&rgb_temp),
+					FALSE);
+			}
 
 			if (waypoint_type!=_waypoint_off_screen)
 			{

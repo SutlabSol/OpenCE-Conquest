@@ -5252,6 +5252,12 @@ boolean game_engine_display_team_indicators(
 	return display;
 }
 
+boolean game_engine_is_conquest(
+	void)
+{
+	return game_engine_running() && global_variant.game_engine_index == game_engine_conquest;
+}
+
 boolean game_engine_can_score(
 	void)
 {

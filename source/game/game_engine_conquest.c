@@ -849,7 +849,7 @@ static void conquest_update_hud_goals(
 		}
 		else if (base->state == conquest_base_blue)
 		{
-			arrow = "flag_blue";
+			arrow = "default";
 			team_index = conquest_team_blue;
 		}
 		else

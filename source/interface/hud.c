@@ -902,12 +902,17 @@ void hud_autosave(
 static void hud_draw_friendly_indicator(
 	long player_index)
 {
-	struct player_datum const *player = player_get(player_index);
+	struct player_datum const *player;
 	real_point3d head_position;
 	real_point3d view_position;
 	real_point2d screen_position;
 	point2d position;
 	real_rectangle2d clip;
+
+	if (game_engine_is_conquest())
+		return;
+
+	player = player_get(player_index);
 	struct bitmap_data *bitmap;
 	real depth_factor;
 	real fade;
@@ -1114,15 +1119,25 @@ void hud_player_name_color(
 {
 	if (ally)
 	{
-		hud_get_text_color(color);
-		color->alpha = 1.0f;
+		if (game_engine_is_conquest())
+		{
+			color->alpha = 1.0f;
+			color->red = 0.2f;
+			color->green = 1.0f;
+			color->blue = 0.2f;
+		}
+		else
+		{
+			hud_get_text_color(color);
+			color->alpha = 1.0f;
+		}
 	}
 	else
 	{
 		color->alpha = 1.0f;
 		color->red = 1.0f;
-		color->green = 0.3f;
-		color->blue = 0.25f;
+		color->green = 0.2f;
+		color->blue = 0.2f;
 	}
 }
 
@@ -1236,7 +1251,7 @@ static void hud_draw_player_names(
 		return;
 	team_index = player_get(player_index)->team_index;
 	/* the campaign always draws teammate triangles (hud_draw_players) */
-	indicators = game_engine_display_team_indicators() || !game_engine_running();
+	indicators = (game_engine_display_team_indicators() && !game_engine_is_conquest()) || !game_engine_running();
 	enemy_range = hud_player_name_enemy_range();
 	/* (the players the motion tracker would show this local player) */
 	game_engine_motion_sensor_viewer(render.local_player_index);
@@ -1248,10 +1263,13 @@ static void hud_draw_player_names(
 
 		if (iterator.datum_index == player_index || player->unit_index == NONE)
 			continue;
-		if ((ally && setting == _player_names_enemies) || (!ally && setting == _player_names_allies) ||
-			!game_engine_draw_object_in_motion_sensor(player->unit_index))
+		if (!game_engine_is_conquest())
 		{
-			continue;
+			if ((ally && setting == _player_names_enemies) || (!ally && setting == _player_names_allies) ||
+				!game_engine_draw_object_in_motion_sensor(player->unit_index))
+			{
+				continue;
+			}
 		}
 		hud_draw_player_name(iterator.datum_index, ally, ally && indicators, enemy_range);
 	}

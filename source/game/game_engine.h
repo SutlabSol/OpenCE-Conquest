@@ -511,6 +511,8 @@ void game_engine_variant_cleanup(
 
 boolean game_engine_display_team_indicators(
 	void);
+boolean game_engine_is_conquest(
+	void);
 
 boolean game_engine_can_score(
 	void);
