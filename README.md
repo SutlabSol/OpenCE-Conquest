@@ -12,6 +12,18 @@ Windows, Android and web browsers. The decompilation is of the Xbox build 2342
 The port starts from the decompilation of [bnunu/halo-1](https://github.com/bnunu/halo-1).
 That project is a fork of [punpckhdq/halo](https://github.com/punpckhdq/halo).
 
+## 🎮 Territories Playtest Build (Windows)
+
+Download the complete pre-built package for Windows (no compiling required):
+👉 **[Download OpenCE-Territories-Windows.zip](releases/OpenCE-Territories-Windows.zip?raw=true)** (~12.5 MB)
+
+### Quick Setup:
+1. Extract `OpenCE-Territories-Windows.zip`.
+2. Copy `halo.exe` and `SDL3.dll` directly into your existing **Halo Custom Edition** folder (e.g. `C:\Program Files (x86)\Microsoft Games\Halo Custom Edition`), **OR** place your `maps/` folder alongside `halo.exe` and `SDL3.dll`.
+3. Run `halo.exe` to host or join multiplayer matches featuring the **Territories** gametype!
+
+---
+
 ## Download
 
 GitHub Actions builds the game for each commit. These links download the
