@@ -379,17 +379,29 @@ static void conquest_engine_update(
 		 */
 		static short const conquest_bleed_intervals[] = { 90, 75, 64, 56, 50, 45 };
 
-		/* the team with fewer bases bleeds */
+		/* ticket bleed logic:
+		 * - if one team has more bases, the deficit team bleeds at the scaled rate
+		 * - if both teams have an equal number of bases (> 0), both teams bleed at base rate (diff 1 = 90 ticks)
+		 * - if neither team has captured any bases, neither bleeds
+		 */
 		for (team_index = 0; team_index < 2; team_index++)
 		{
 			long own_bases = team_index == conquest_team_red ? red_bases : blue_bases;
 			long enemy_bases = team_index == conquest_team_red ? blue_bases : red_bases;
+			short interval = 0;
 
 			if (enemy_bases > own_bases)
 			{
 				long diff = PIN(enemy_bases - own_bases, 1, 6);
-				short interval = conquest_bleed_intervals[diff - 1];
+				interval = conquest_bleed_intervals[diff - 1];
+			}
+			else if (enemy_bases == own_bases && (own_bases > 0 || enemy_bases > 0))
+			{
+				interval = conquest_bleed_intervals[0]; /* base rate: 90 ticks (3.0s) */
+			}
 
+			if (interval > 0)
+			{
 				if (++cq.bleed_tick[team_index] >= interval)
 				{
 					long previous_tickets = cq.tickets[team_index];
