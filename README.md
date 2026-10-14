@@ -15,7 +15,7 @@ That project is a fork of [punpckhdq/halo](https://github.com/punpckhdq/halo).
 ## 🎮 Territories Playtest Build (Windows)
 
 Download the complete pre-built package for Windows (no compiling required):
-👉 **[Download OpenCE-Territories-Windows.zip](releases/OpenCE-Territories-Windows.zip?raw=true)** (~12.5 MB)
+👉 **[Download OpenCE-Territories-Windows.zip](https://github.com/SutlabSol/OpenCE-Conquest/releases/download/v1.0.0-territories/OpenCE-Territories-Windows.zip)** (~12.5 MB) · [View Release](https://github.com/SutlabSol/OpenCE-Conquest/releases/tag/v1.0.0-territories)
 
 ### Quick Setup:
 1. Extract `OpenCE-Territories-Windows.zip`.
