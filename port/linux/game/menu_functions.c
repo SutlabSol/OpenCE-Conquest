@@ -5324,10 +5324,9 @@ static char const *const engine_items[] =
 {
 	/* (the type list's rows, in order: game_engine_ctf and so on) */
 	"gametype_select_ctf_item", "gametype_select_koth_item", "gametype_select_slayer_item",
-	"gametype_select_oddball_item", "gametype_select_race_item", "gametype_select_ter_item",
-	"gametype_select_conquest_item"
+	"gametype_select_oddball_item", "gametype_select_race_item", "gametype_select_ter_item"
 };
-static long const engine_of_item[] = { 1, 4, 2, 3, 5, 8, 8 };
+static long const engine_of_item[] = { 1, 4, 2, 3, 5, 8 };
 
 /* "mp profile init game engine": the gametype's type focused */
 static boolean gametype_engine_init(struct widget_instance *list)

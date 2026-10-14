@@ -265,7 +265,7 @@ char *string_list_get_string(long tag_index, short string_index)
 			if (!csstrcasecmp(tag_name, MULTIPLAYER_GAME_TEXT_TAG_NAME))
 			{
 				if (string_index == 184)
-					return "Conquest";
+					return "Territories";
 				if (string_index == 185)
 					return "Tickets";
 			}
