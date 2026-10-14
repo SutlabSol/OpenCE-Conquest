@@ -124,7 +124,8 @@ void custom_render_nav_point(
 	short local_player_index,
 	union real_point3d const *position,
 	short nav_index,
-	short waypoint_type);
+	short waypoint_type,
+	short team_index);
 
 /* ---------- prototypes/HUD_SOUNDS.C */
 

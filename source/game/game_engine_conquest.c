@@ -769,13 +769,28 @@ static void conquest_update_hud_goals(
 		struct conquest_base const *base = &cq.bases[base_index];
 		real_point3d position = base->center;
 		char const *arrow;
+		short team_index;
 
-		if (base->state == conquest_base_red)
-			arrow = "default";
-		else if (base->state == conquest_base_blue)
-			arrow = "flag_blue";
-		else
+		if (base->capturing_team == CONQUEST_CONTESTED)
+		{
 			arrow = "crown_blue";
+			team_index = CONQUEST_CONTESTED;
+		}
+		else if (base->state == conquest_base_red)
+		{
+			arrow = "default";
+			team_index = conquest_team_red;
+		}
+		else if (base->state == conquest_base_blue)
+		{
+			arrow = "flag_blue";
+			team_index = conquest_team_blue;
+		}
+		else
+		{
+			arrow = "crown_blue";
+			team_index = NONE;
+		}
 
 		game_engine_set_goal_position(
 			(short)base_index,
@@ -783,7 +798,7 @@ static void conquest_update_hud_goals(
 			0.0f,
 			arrow,
 			NONE,
-			NONE,
+			team_index,
 			NONE);
 	}
 

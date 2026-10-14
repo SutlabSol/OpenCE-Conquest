@@ -5827,7 +5827,8 @@ void game_engine_render_nav_points(
 							local_player_index,
 							&global_goal[goal_index].position,
 							global_goal[goal_index].nav_index,
-							render_type);
+							render_type,
+							global_goal[goal_index].team_index);
 					}
 				}
 			}
