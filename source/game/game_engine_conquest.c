@@ -97,6 +97,12 @@ static boolean conquest_player_inside_base(
 	struct conquest_base const *base);
 static void conquest_update_hud_goals(
 	void);
+static boolean conquest_engine_format_message(
+	long player_index,
+	long message,
+	long message_data,
+	wchar_t *buffer,
+	long buffer_size);
 static void conquest_render_base_fence(
 	struct conquest_base const *base,
 	long shader_index);
@@ -269,6 +275,7 @@ static boolean conquest_engine_initialize_for_new_map(
 	cq.tickets[conquest_team_blue] = starting_tickets;
 
 	render_dynamic_quad_initialize();
+	conquest_update_hud_goals();
 
 	if (cq.base_count == 0)
 		error(_error_silent, "conquest: the map has no hill flags");
@@ -496,6 +503,16 @@ static real conquest_engine_starting_location_rating(
 	return 1.0f + best_bonus;
 }
 
+static boolean conquest_engine_format_message(
+	long player_index,
+	long message,
+	long message_data,
+	wchar_t *buffer,
+	long buffer_size)
+{
+	return FALSE;
+}
+
 static boolean conquest_engine_goal_matches_player(
 	long player_index,
 	long goal_index)
@@ -554,7 +571,7 @@ struct game_engine conquest_engine =
 	NULL,
 	conquest_engine_player_damaged_player,
 	conquest_engine_player_killed_player,
-	NULL,
+	conquest_engine_format_message,
 	conquest_engine_starting_location_rating,
 	conquest_engine_prespawn_player_update,
 	NULL,
@@ -617,6 +634,7 @@ boolean game_engine_conquest_read_network_state(
 		}
 	}
 	csmemcpy(&cq, &state, sizeof(cq));
+	conquest_update_hud_goals();
 
 	return TRUE;
 }
