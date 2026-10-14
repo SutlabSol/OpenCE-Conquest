@@ -94,6 +94,9 @@ struct conquest_globals
 
 	/* bleed tick accumulator: ticket is deducted every CONQUEST_BLEED_INTERVAL */
 	long bleed_tick[2];
+
+	/* all-bases lockdown accumulator: ticks team has continuously held all bases */
+	long lockdown_ticks[2];
 };
 
 /* ---------- prototypes/GAME_ENGINE_CONQUEST.C */

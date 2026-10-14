@@ -273,6 +273,10 @@ static boolean conquest_engine_initialize_for_new_map(
 		game_engine_get_variant()->universal_variant.score_to_win : CONQUEST_STARTING_TICKETS;
 	cq.tickets[conquest_team_red] = starting_tickets;
 	cq.tickets[conquest_team_blue] = starting_tickets;
+	cq.bleed_tick[conquest_team_red] = 0;
+	cq.bleed_tick[conquest_team_blue] = 0;
+	cq.lockdown_ticks[conquest_team_red] = 0;
+	cq.lockdown_ticks[conquest_team_blue] = 0;
 
 	render_dynamic_quad_initialize();
 	conquest_update_hud_goals();
@@ -365,6 +369,16 @@ static void conquest_engine_update(
 				blue_bases++;
 		}
 
+		/* Scaled bleed interval based on points controlled difference:
+		 * diff 1: 1.0x rate = 90 ticks (3.00s)
+		 * diff 2: 1.2x rate = 75 ticks (2.50s)
+		 * diff 3: 1.4x rate = 64 ticks (2.14s)
+		 * diff 4: 1.6x rate = 56 ticks (1.87s)
+		 * diff 5: 1.8x rate = 50 ticks (1.67s)
+		 * diff 6: 2.0x rate = 45 ticks (1.50s)
+		 */
+		static short const conquest_bleed_intervals[] = { 90, 75, 64, 56, 50, 45 };
+
 		/* the team with fewer bases bleeds */
 		for (team_index = 0; team_index < 2; team_index++)
 		{
@@ -373,7 +387,10 @@ static void conquest_engine_update(
 
 			if (enemy_bases > own_bases)
 			{
-				if (++cq.bleed_tick[team_index] >= CONQUEST_BLEED_INTERVAL)
+				long diff = PIN(enemy_bases - own_bases, 1, 6);
+				short interval = conquest_bleed_intervals[diff - 1];
+
+				if (++cq.bleed_tick[team_index] >= interval)
 				{
 					long previous_tickets = cq.tickets[team_index];
 
@@ -385,6 +402,40 @@ static void conquest_engine_update(
 			else
 			{
 				cq.bleed_tick[team_index] = 0;
+			}
+		}
+
+		/* full map lockdown: if a team holds all bases for 1 continuous minute (1800 ticks), they automatically win */
+		for (team_index = 0; team_index < 2; team_index++)
+		{
+			long own_bases = team_index == conquest_team_red ? red_bases : blue_bases;
+
+			if (cq.base_count > 0 && own_bases == cq.base_count)
+			{
+				long previous_lockdown = cq.lockdown_ticks[team_index];
+				cq.lockdown_ticks[team_index]++;
+
+				/* Audio warning alerts at 30 seconds and 10 seconds remaining */
+				if (previous_lockdown < 30 * TICKS_PER_SECOND && cq.lockdown_ticks[team_index] >= 30 * TICKS_PER_SECOND)
+				{
+					game_engine_play_multiplayer_sound(_conquest_sound_ting);
+				}
+				else if (previous_lockdown < 50 * TICKS_PER_SECOND && cq.lockdown_ticks[team_index] >= 50 * TICKS_PER_SECOND)
+				{
+					game_engine_play_multiplayer_sound(
+						team_index == conquest_team_red ? _conquest_sound_red_30_seconds : _conquest_sound_blue_30_seconds);
+				}
+
+				if (cq.lockdown_ticks[team_index] >= 60 * TICKS_PER_SECOND)
+				{
+					long enemy_team = 1 - team_index;
+					cq.tickets[enemy_team] = 0;
+					game_engine_end_game();
+				}
+			}
+			else
+			{
+				cq.lockdown_ticks[team_index] = 0;
 			}
 		}
 
@@ -622,6 +673,21 @@ boolean game_engine_conquest_read_network_state(
 	{
 		for (team_index = 0; team_index < 2; team_index++)
 			conquest_ticket_sounds(team_index, state.tickets[team_index], cq.tickets[team_index]);
+		for (team_index = 0; team_index < 2; team_index++)
+		{
+			long prev = cq.lockdown_ticks[team_index];
+			long curr = state.lockdown_ticks[team_index];
+
+			if (prev < 30 * TICKS_PER_SECOND && curr >= 30 * TICKS_PER_SECOND)
+			{
+				game_engine_play_multiplayer_sound(_conquest_sound_ting);
+			}
+			else if (prev < 50 * TICKS_PER_SECOND && curr >= 50 * TICKS_PER_SECOND)
+			{
+				game_engine_play_multiplayer_sound(
+					team_index == conquest_team_red ? _conquest_sound_red_30_seconds : _conquest_sound_blue_30_seconds);
+			}
+		}
 		for (base_index = 0; base_index < state.base_count && base_index < cq.base_count; base_index++)
 		{
 			if (state.bases[base_index].state != cq.bases[base_index].state)
