@@ -53,6 +53,13 @@ enum get_score_type
 	_get_score_team,
 };
 
+enum goal_radar
+{
+	_radar_motion_tracker = 0,
+	_radar_nav_point,
+	_radar_none,
+};
+
 /* ---------- macros */
 
 /* ---------- structures */

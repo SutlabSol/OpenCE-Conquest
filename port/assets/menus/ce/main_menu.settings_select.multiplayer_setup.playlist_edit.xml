@@ -31,8 +31,8 @@
 		<child widget="common_button_cancel" x="510" y="1"/>
 	</widget>
 	<widget name="main_menu/settings_select/multiplayer_setup/playlist_edit/playlist_edit_button_ok" type="text" width="128" height="24" bitmap="bitmaps/text_button_background" string_list="strings/common_button_captions" string_index="1" font="ui\small_ui" color="#FFFFFFFF" align="center" text_y="2">
-		<on event="a" run="mp profile save changes" open="error/warning_saving_file_screen"/>
-		<on event="start" run="mp profile save changes" open="error/warning_saving_file_screen"/>
+		<on event="a" run="mp profile save changes"/>
+		<on event="start" run="mp profile save changes"/>
 		<on event="left_mouse" run="mouse emit accept event"/>
 	</widget>
 	<widget name="main_menu/settings_select/multiplayer_setup/playlist_edit/playlist_edit_ext_desc_pic" controller="1" left="290" top="80" width="284" height="208" bitmap="main_menu/settings_select/multiplayer_setup/playlist_edit/gametype_options">

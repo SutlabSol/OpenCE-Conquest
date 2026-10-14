@@ -744,6 +744,9 @@
 		<string text="Each team starts with 300 tickets."/>
 		<string text="Each team starts with 400 tickets."/>
 		<string text="Each team starts with 500 tickets."/>
+		<string text="Each team starts with 750 tickets."/>
+		<string text="Each team starts with 1000 tickets."/>
+		<string text="Each team starts with 1500 tickets."/>
 		<string text="The game will have no time limit.  It will only end\nwhen someone wins."/>
 		<string text="This game will have a 10 minute time limit.  It will\nend after the time limit is up or someone wins."/>
 		<string text="This game will have a 15 minute time limit.  It will\nend after the time limit is up or someone wins."/>
@@ -772,6 +775,9 @@
 		<string text="300 TICKETS"/>
 		<string text="400 TICKETS"/>
 		<string text="500 TICKETS"/>
+		<string text="750 TICKETS"/>
+		<string text="1000 TICKETS"/>
+		<string text="1500 TICKETS"/>
 	</strings>
 	<strings name="main_menu/settings_select/multiplayer_setup/playlist_edit/conquest_edit/cap_conquest">
 		<string text="There will be 3 territory bases to capture on the map."/>
@@ -787,6 +793,9 @@
 		<string text="Each team starts with 300 tickets."/>
 		<string text="Each team starts with 400 tickets."/>
 		<string text="Each team starts with 500 tickets."/>
+		<string text="Each team starts with 750 tickets."/>
+		<string text="Each team starts with 1000 tickets."/>
+		<string text="Each team starts with 1500 tickets."/>
 		<string text="The game will have no time limit.  It will only end\nwhen someone wins."/>
 		<string text="This game will have a 10 minute time limit.  It will\nend after the time limit is up or someone wins."/>
 		<string text="This game will have a 15 minute time limit.  It will\nend after the time limit is up or someone wins."/>
@@ -815,6 +824,9 @@
 		<string text="300 TICKETS"/>
 		<string text="400 TICKETS"/>
 		<string text="500 TICKETS"/>
+		<string text="750 TICKETS"/>
+		<string text="1000 TICKETS"/>
+		<string text="1500 TICKETS"/>
 	</strings>
 	<strings name="main_menu/settings_select/multiplayer_setup/playlist_edit/koth_edit/cap_koth">
 		<string text="During the course of the game, the Hill will teleport to\na random location."/>

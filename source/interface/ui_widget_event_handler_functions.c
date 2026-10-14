@@ -6293,6 +6293,8 @@ boolean ui_widget_port_gametype_save(
 	struct widget_instance *widget,
 	boolean *widget_deleted)
 {
+	extern void ui_widget_port_go_back(struct widget_instance *widget);
+
 	if (!player_ui_edit_profile_is_dirty())
 	{
 		player_ui_end_editing_profile();
@@ -6307,6 +6309,12 @@ boolean ui_widget_port_gametype_save(
 		player_ui_prompt_user_to_rename_edit_profile();
 		return FALSE;
 	}
-	return player_ui_save_profile();
+	if (!player_ui_save_profile())
+		return FALSE;
+	player_ui_end_editing_profile();
+	ui_widget_port_go_back(widget);
+	*widget_deleted = TRUE;
+	return TRUE;
 }
+
 

@@ -4765,12 +4765,12 @@ static struct gametype_option const gametype_options[] =
 	/* territories / conquest */
 	{ "territories_base_count_spinner", _option_long, VARIANT_FIELD(game_engine_variant.conquest.base_count), 0, 4,
 		{ 3, 4, 5, 6 } },
-	{ "territories_score_to_win_spinner", _option_long, VARIANT_FIELD(universal_variant.score_to_win), 0, 9,
-		{ 50, 75, 100, 150, 200, 250, 300, 400, 500 } },
+	{ "territories_score_to_win_spinner", _option_long, VARIANT_FIELD(universal_variant.score_to_win), 0, 12,
+		{ 50, 75, 100, 150, 200, 250, 300, 400, 500, 750, 1000, 1500 } },
 	{ "conquest_base_count_spinner", _option_long, VARIANT_FIELD(game_engine_variant.conquest.base_count), 0, 4,
 		{ 3, 4, 5, 6 } },
-	{ "conquest_score_to_win_spinner", _option_long, VARIANT_FIELD(universal_variant.score_to_win), 0, 9,
-		{ 50, 75, 100, 150, 200, 250, 300, 400, 500 } },
+	{ "conquest_score_to_win_spinner", _option_long, VARIANT_FIELD(universal_variant.score_to_win), 0, 12,
+		{ 50, 75, 100, 150, 200, 250, 300, 400, 500, 750, 1000, 1500 } },
 };
 
 /* an option of the host's own setting: the value shown for it (the one
@@ -5367,6 +5367,9 @@ static boolean gametype_engine_set(struct widget_instance *item)
 				variant->game_engine_variant.conquest.base_count = 5;
 				variant->universal_variant.score_to_win = 100;
 				variant->universal_variant.teams = 1;
+				variant->universal_variant.goal_radar = _radar_nav_point;
+				SET_FLAG(variant->universal_variant.flags, _game_variant_draw_object_in_motion_sensor_bit, TRUE);
+				SET_FLAG(variant->universal_variant.flags, _game_variant_allow_friendly_navpoints_bit, TRUE);
 			}
 			return TRUE;
 		}

@@ -685,12 +685,6 @@ enum game_engine_weapons
 	NUMBER_OF_GAME_ENGINE_WEAPON_SETS,
 };
 
-enum goal_radar
-{
-	_radar_motion_tracker = 0,
-	_radar_nav_point,
-	_radar_none,
-};
 
 enum game_engine_vehicles
 {
@@ -7304,6 +7298,8 @@ void game_engine_variant_cleanup(
 	case game_engine_conquest:
 		/* port: conquest is always a team game */
 		variant->universal_variant.teams = TRUE;
+		if (variant->universal_variant.goal_radar != _radar_none)
+			variant->universal_variant.goal_radar = _radar_nav_point;
 		if (variant->game_engine_variant.conquest.base_count < 3 ||
 			variant->game_engine_variant.conquest.base_count > 6)
 		{
