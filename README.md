@@ -15,11 +15,11 @@ That project is a fork of [punpckhdq/halo](https://github.com/punpckhdq/halo).
 ## 🎮 Territories Playtest Build (Windows)
 
 Download the complete pre-built package for Windows (no compiling required):
-👉 **[Download OpenCE-Territories-Windows.zip](https://github.com/SutlabSol/OpenCE-Conquest/releases/download/v1.0.0-territories/OpenCE-Territories-Windows.zip)** (~12.5 MB) · [View Release](https://github.com/SutlabSol/OpenCE-Conquest/releases/tag/v1.0.0-territories)
+👉 **[Download OpenCE-Territories-Windows.zip](https://github.com/SutlabSol/OpenCE-Conquest/raw/main/releases/OpenCE-Territories-Windows.zip)** (~13.2 MB) · [Release v1.1.0](https://github.com/SutlabSol/OpenCE-Conquest/releases/tag/v1.1.0-territories)
 
 ### Quick Setup:
 1. Extract `OpenCE-Territories-Windows.zip`.
-2. Copy `halo.exe` and `SDL3.dll` directly into your existing **Halo Custom Edition** folder (e.g. `C:\Program Files (x86)\Microsoft Games\Halo Custom Edition`), **OR** place your `maps/` folder alongside `halo.exe` and `SDL3.dll`.
+2. Copy `halo.exe`, `SDL3.dll`, and `brokers.txt` directly into your existing **Halo Custom Edition** folder (e.g. `C:\Program Files (x86)\Microsoft Games\Halo Custom Edition`), **OR** place your `maps/` folder alongside them.
 3. Run `halo.exe` to host or join multiplayer matches featuring the **Territories** gametype!
 
 ---
