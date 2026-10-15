@@ -82,6 +82,7 @@ symbols in this file:
 #include "cutscene/cinematics.h"
 #include "devices/device_controls.h"
 #include "game/game_engine.h"
+#include "game/game_engine_conquest.h"
 #include "game/game_globals.h"
 #include "game/players.h"
 #include "interface/hud.h"
@@ -1277,6 +1278,144 @@ static void hud_draw_player_names(
 	return;
 }
 
+/* port: draw conquest base status indicators [A] [B] [C] at top center of HUD */
+#define CONQUEST_HUD_BADGE_SCALE 0.55f
+#define CONQUEST_HUD_BADGE_SPACING 18
+
+static void hud_draw_conquest_bases(
+	void)
+{
+	long base_count;
+	long player_index;
+	struct player_datum *player;
+	long local_team;
+	long font_index;
+	struct font_header *font;
+	short font_height;
+	rectangle2d window_bounds;
+	real center_x;
+	short top_y;
+	real start_x;
+	long i;
+
+	if (!game_engine_is_conquest() || !hud_scripted_globals->show_hud || cinematic_in_progress())
+		return;
+
+	base_count = game_engine_conquest_get_base_count();
+	if (base_count <= 0 || base_count > CONQUEST_MAXIMUM_BASES)
+		return;
+
+	player_index = local_player_get_player_index(render.local_player_index);
+	if (player_index == NONE)
+		return;
+
+	player = player_get(player_index);
+	local_team = player->team_index;
+
+	font_index = hud_get_font_index();
+	if (font_index == NONE)
+		return;
+
+	font = font_definition_get(font_index);
+	font_height = font ? (font->ascending_height + font->descending_height) : 14;
+
+	window_bounds = render.camera.window_bounds;
+	offset_rectangle2d(
+		&window_bounds,
+		-render.camera.viewport_bounds.x0,
+		-render.camera.viewport_bounds.y0);
+
+	center_x = (window_bounds.x0 + window_bounds.x1) / 2.0f;
+	top_y = (short)(window_bounds.y0 + 3);
+
+	start_x = center_x - ((base_count - 1) * CONQUEST_HUD_BADGE_SPACING) / 2.0f;
+
+	for (i = 0; i < base_count; i++)
+	{
+		struct conquest_base const *base = game_engine_conquest_get_base(i);
+		wchar_t badge[4];
+		real_argb_color color;
+		rectangle2d bounds;
+		real badge_center_x;
+
+		if (!base)
+			continue;
+
+		badge[0] = L'[';
+		badge[1] = (wchar_t)(L'A' + i);
+		badge[2] = L']';
+		badge[3] = L'\0';
+
+		badge_center_x = start_x + (real)(i * CONQUEST_HUD_BADGE_SPACING);
+		bounds.x0 = (short)(badge_center_x - 30.0f);
+		bounds.x1 = (short)(badge_center_x + 30.0f);
+		bounds.y0 = top_y;
+		bounds.y1 = (short)(top_y + font_height + 20);
+
+		color.alpha = 1.0f;
+
+		if (base->capturing_team == CONQUEST_CONTESTED && ((game_time_get() % 30) < 15))
+		{
+			/* Contested: pulse amber */
+			color.red = 1.0f;
+			color.green = 0.85f;
+			color.blue = 0.1f;
+		}
+		else if (base->state == conquest_base_neutral)
+		{
+			/* Neutral: soft light gray */
+			color.red = 0.85f;
+			color.green = 0.85f;
+			color.blue = 0.85f;
+		}
+		else
+		{
+			long owner_team = (base->state == conquest_base_red) ? conquest_team_red : conquest_team_blue;
+			if (local_team == conquest_team_red || local_team == conquest_team_blue)
+			{
+				if (owner_team == local_team)
+				{
+					/* Friendly: team green */
+					color.red = 0.2f;
+					color.green = 1.0f;
+					color.blue = 0.2f;
+				}
+				else
+				{
+					/* Enemy: team red */
+					color.red = 1.0f;
+					color.green = 0.2f;
+					color.blue = 0.2f;
+				}
+			}
+			else
+			{
+				/* Spectator or non-team */
+				if (owner_team == conquest_team_red)
+				{
+					color.red = 1.0f;
+					color.green = 0.2f;
+					color.blue = 0.2f;
+				}
+				else
+				{
+					color.red = 0.3f;
+					color.green = 0.6f;
+					color.blue = 1.0f;
+				}
+			}
+		}
+
+		draw_string_set_draw_mode(font_index, NONE, 2 /* center */, 0, &color);
+		rasterizer_text_set_scale(CONQUEST_HUD_BADGE_SCALE, badge_center_x, (real)top_y);
+		rasterizer_draw_unicode_string(&bounds, NULL, NULL, 0, badge);
+		rasterizer_text_set_scale(1.0f, 0.0f, 0.0f);
+	}
+
+	draw_string_set_format(NONE, 0, 0);
+	draw_string_set_tab_stops(NULL, 0);
+}
+
 static void temporary_hud_draw(
 	void)
 {
@@ -1466,6 +1605,8 @@ void hud_draw_screen(
 				hud_show_action_response(player_index);
 				hud_play_unit_sounds(player, hud_scripted_globals->show_hud);
 			}
+
+			hud_draw_conquest_bases();
 		}
 		else
 		{

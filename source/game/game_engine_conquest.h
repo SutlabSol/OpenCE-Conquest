@@ -105,6 +105,10 @@ struct conquest_globals
 long    game_engine_conquest_write_network_state(byte *buffer, long size);
 boolean game_engine_conquest_read_network_state(byte const *buffer, long size, boolean first);
 
+/* base getters for HUD */
+long game_engine_conquest_get_base_count(void);
+struct conquest_base const *game_engine_conquest_get_base(long index);
+
 /* ---------- globals */
 
 extern struct game_engine conquest_engine;

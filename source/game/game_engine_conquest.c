@@ -26,10 +26,12 @@ How it plays:
 #include "cseries/cseries.h"
 #include "cseries/errors.h"
 #include "game/game.h"
+#include "game/game_engine.h"
 #include "game/game_globals.h"
 #include "game/game_engine_conquest.h"
 #include "game/game_engine_place.h"
 #include "game/players.h"
+#include <math.h>
 #include "main/console.h"
 #include "math/geometry.h"
 #include "rasterizer/rasterizer.h"
@@ -211,23 +213,95 @@ static void conquest_engine_player_update(
 	return;
 }
 
-static boolean conquest_engine_initialize_for_new_map(
-	void)
+static boolean conquest_get_hill_center(
+	short hill_id,
+	real_point3d *center)
 {
 	struct scenario *scenario = global_scenario_get();
-	short hill_ids[CONQUEST_MAXIMUM_BASES];
-	short hill_id_count = 0;
+	long flag_indices[CONQUEST_MAXIMUM_HILL_POINTS];
+	long point_count;
+	real_point3d min_pt, max_pt;
+	long i;
+
+	point_count = find_netgame_flags(
+		NULL,
+		0.0f,
+		0.0f,
+		_netgame_flag_hill,
+		hill_id,
+		CONQUEST_MAXIMUM_HILL_POINTS,
+		flag_indices);
+
+	if (point_count <= 0)
+		return FALSE;
+
+	{
+		struct scenario_netgame_flag *flag0 = TAG_BLOCK_GET_ELEMENT(
+			&scenario->netgame_flags,
+			flag_indices[0],
+			struct scenario_netgame_flag);
+		min_pt = max_pt = flag0->position;
+	}
+
+	for (i = 1; i < point_count; i++)
+	{
+		struct scenario_netgame_flag *flag = TAG_BLOCK_GET_ELEMENT(
+			&scenario->netgame_flags,
+			flag_indices[i],
+			struct scenario_netgame_flag);
+
+		min_pt.x = MIN(min_pt.x, flag->position.x);
+		min_pt.y = MIN(min_pt.y, flag->position.y);
+		min_pt.z = MIN(min_pt.z, flag->position.z);
+		max_pt.x = MAX(max_pt.x, flag->position.x);
+		max_pt.y = MAX(max_pt.y, flag->position.y);
+		max_pt.z = MAX(max_pt.z, flag->position.z);
+	}
+
+	center->x = (min_pt.x + max_pt.x) * 0.5f;
+	center->y = (min_pt.y + max_pt.y) * 0.5f;
+	center->z = (min_pt.z + max_pt.z) * 0.5f;
+	return TRUE;
+}
+
+struct candidate_hill_info
+{
+	short hill_id;
+	real_point3d center;
+	real dist_red;
+	real dist_blue;
+	real bias;
+	boolean too_close;
+	boolean selected;
+};
+
+#define CONQUEST_MAX_CANDIDATE_HILLS 32
+
+/* Select hills prioritizing equal distance to Red/Blue bases and excluding spawn-adjacent hills */
+static void conquest_select_balanced_hills(
+	short *chosen_hill_ids,
+	short *chosen_count,
+	short target_count)
+{
+	struct scenario *scenario = global_scenario_get();
+	struct candidate_hill_info candidates[CONQUEST_MAX_CANDIDATE_HILLS];
+	short candidate_count = 0;
 	long flag_index;
-	long base_index;
-	short configured_bases;
-	long starting_tickets;
+	boolean has_base_positions = FALSE;
+	real_point3d red_base = { 0 };
+	real_point3d blue_base = { 0 };
+	real base_distance;
+	real min_spawn_buffer;
+	short i;
+	short selected_num = 0;
+	real total_dist_red = 0.0f;
+	real total_dist_blue = 0.0f;
 
-	csmemset(&cq, 0, sizeof(cq));
+	*chosen_count = 0;
 
-	/* the first hill ids of the map's hill flags (a hill's flags share an
-	id, in their team index) */
+	/* 1. Gather all unique hill IDs in the scenario */
 	for (flag_index = 0;
-		flag_index < scenario->netgame_flags.count && hill_id_count < CONQUEST_MAXIMUM_BASES;
+		flag_index < scenario->netgame_flags.count && candidate_count < CONQUEST_MAX_CANDIDATE_HILLS;
 		flag_index++)
 	{
 		struct scenario_netgame_flag *flag = TAG_BLOCK_GET_ELEMENT(
@@ -238,24 +312,204 @@ static boolean conquest_engine_initialize_for_new_map(
 		if (flag->type == _netgame_flag_hill)
 		{
 			boolean found = FALSE;
-			short i;
-
-			for (i = 0; i < hill_id_count; i++)
+			for (i = 0; i < candidate_count; i++)
 			{
-				if (hill_ids[i] == flag->team_index)
+				if (candidates[i].hill_id == flag->team_index)
 				{
 					found = TRUE;
 					break;
 				}
 			}
 			if (!found)
-				hill_ids[hill_id_count++] = flag->team_index;
+			{
+				candidates[candidate_count].hill_id = flag->team_index;
+				candidates[candidate_count].selected = FALSE;
+				candidate_count++;
+			}
 		}
 	}
+
+	if (candidate_count == 0)
+		return;
+
+	/* If candidates are fewer than or equal to target_count, take all of them */
+	if (candidate_count <= target_count)
+	{
+		for (i = 0; i < candidate_count; i++)
+			chosen_hill_ids[i] = candidates[i].hill_id;
+		*chosen_count = candidate_count;
+		return;
+	}
+
+	/* 2. Locate Red and Blue base positions via CTF flags or player spawn centroids */
+	{
+		long red_flag_index = find_netgame_flag(NULL, 0.0f, 0.0f, _netgame_flag_ctf_flag, conquest_team_red);
+		long blue_flag_index = find_netgame_flag(NULL, 0.0f, 0.0f, _netgame_flag_ctf_flag, conquest_team_blue);
+
+		if (red_flag_index != NONE && blue_flag_index != NONE)
+		{
+			struct scenario_netgame_flag *rf = TAG_BLOCK_GET_ELEMENT(
+				&scenario->netgame_flags, red_flag_index, struct scenario_netgame_flag);
+			struct scenario_netgame_flag *bf = TAG_BLOCK_GET_ELEMENT(
+				&scenario->netgame_flags, blue_flag_index, struct scenario_netgame_flag);
+			if (rf && bf)
+			{
+				red_base = rf->position;
+				blue_base = bf->position;
+				has_base_positions = TRUE;
+			}
+		}
+	}
+
+	if (!has_base_positions)
+	{
+		long red_spawn_count = 0;
+		long blue_spawn_count = 0;
+		short loc_count = player_get_starting_location_count();
+		short loc_idx;
+
+		for (loc_idx = 0; loc_idx < loc_count; loc_idx++)
+		{
+			struct player_starting_location *loc = player_get_starting_location(loc_idx);
+			if (!loc)
+				continue;
+			if (loc->team_index == conquest_team_red)
+			{
+				red_base.x += loc->position.x;
+				red_base.y += loc->position.y;
+				red_base.z += loc->position.z;
+				red_spawn_count++;
+			}
+			else if (loc->team_index == conquest_team_blue)
+			{
+				blue_base.x += loc->position.x;
+				blue_base.y += loc->position.y;
+				blue_base.z += loc->position.z;
+				blue_spawn_count++;
+			}
+		}
+
+		if (red_spawn_count > 0 && blue_spawn_count > 0)
+		{
+			red_base.x /= (real)red_spawn_count;
+			red_base.y /= (real)red_spawn_count;
+			red_base.z /= (real)red_spawn_count;
+			blue_base.x /= (real)blue_spawn_count;
+			blue_base.y /= (real)blue_spawn_count;
+			blue_base.z /= (real)blue_spawn_count;
+			has_base_positions = TRUE;
+		}
+	}
+
+	if (!has_base_positions)
+	{
+		/* Fallback if map has neither CTF flags nor team spawns */
+		for (i = 0; i < target_count && i < candidate_count; i++)
+			chosen_hill_ids[i] = candidates[i].hill_id;
+		*chosen_count = MIN(target_count, candidate_count);
+		return;
+	}
+
+	base_distance = distance3d(&red_base, &blue_base);
+	min_spawn_buffer = base_distance * 0.18f;
+
+	/* 3. Compute center, distances, and bias for each candidate hill */
+	for (i = 0; i < candidate_count; i++)
+	{
+		conquest_get_hill_center(candidates[i].hill_id, &candidates[i].center);
+		candidates[i].dist_red = distance3d(&candidates[i].center, &red_base);
+		candidates[i].dist_blue = distance3d(&candidates[i].center, &blue_base);
+		candidates[i].bias = (real)fabs(candidates[i].dist_red - candidates[i].dist_blue);
+		candidates[i].too_close = (candidates[i].dist_red < min_spawn_buffer ||
+		                           candidates[i].dist_blue < min_spawn_buffer);
+	}
+
+	/* 4. Check if enough candidates remain when excluding hills too close to spawn */
+	{
+		short valid_count = 0;
+		for (i = 0; i < candidate_count; i++)
+		{
+			if (!candidates[i].too_close)
+				valid_count++;
+		}
+		if (valid_count < target_count)
+		{
+			/* If excluding them leaves too few hills, relax exclusion */
+			for (i = 0; i < candidate_count; i++)
+				candidates[i].too_close = FALSE;
+		}
+	}
+
+	/* 5. Select target_count hills greedily to maintain minimum bias and equal distance sum */
+	while (selected_num < target_count && selected_num < candidate_count)
+	{
+		short best_idx = -1;
+		real best_score = 1e9f;
+
+		for (i = 0; i < candidate_count; i++)
+		{
+			real candidate_score;
+			real new_diff;
+
+			if (candidates[i].selected || candidates[i].too_close)
+				continue;
+
+			new_diff = (real)fabs((total_dist_red + candidates[i].dist_red) -
+			                      (total_dist_blue + candidates[i].dist_blue));
+
+			/* Score prioritizes overall balance between teams, then individual neutrality */
+			candidate_score = new_diff * 1.5f + candidates[i].bias;
+
+			if (candidate_score < best_score)
+			{
+				best_score = candidate_score;
+				best_idx = i;
+			}
+		}
+
+		if (best_idx == -1)
+		{
+			/* If non-too_close candidates exhausted, pick from remaining */
+			for (i = 0; i < candidate_count; i++)
+			{
+				if (!candidates[i].selected)
+				{
+					best_idx = i;
+					break;
+				}
+			}
+		}
+
+		if (best_idx == -1)
+			break;
+
+		candidates[best_idx].selected = TRUE;
+		chosen_hill_ids[selected_num++] = candidates[best_idx].hill_id;
+		total_dist_red += candidates[best_idx].dist_red;
+		total_dist_blue += candidates[best_idx].dist_blue;
+	}
+
+	*chosen_count = selected_num;
+}
+
+static boolean conquest_engine_initialize_for_new_map(
+	void)
+{
+	short hill_ids[CONQUEST_MAXIMUM_BASES];
+	short hill_id_count = 0;
+	long base_index;
+	short configured_bases;
+	long starting_tickets;
+
+	csmemset(&cq, 0, sizeof(cq));
 
 	configured_bases = (short)game_engine_get_variant()->game_engine_variant.conquest.base_count;
 	if (configured_bases < 3 || configured_bases > CONQUEST_MAXIMUM_BASES)
 		configured_bases = 5;
+
+	/* Select fair, balanced hills away from team spawns */
+	conquest_select_balanced_hills(hill_ids, &hill_id_count, configured_bases);
+
 	cq.base_count = MIN(hill_id_count, configured_bases);
 	cq.base_count = PIN(cq.base_count, 0, CONQUEST_MAXIMUM_BASES);
 	for (base_index = 0; base_index < cq.base_count; base_index++)
@@ -614,6 +868,15 @@ static void conquest_engine_post_rasterize(
 
 /* ---------- engine table */
 
+static boolean conquest_test_flag(
+	long flag)
+{
+	if (flag == 0)
+		return TRUE; /* enforces team starting locations: red at red, blue at blue */
+
+	return FALSE;
+}
+
 struct game_engine conquest_engine =
 {
 	"conquest",
@@ -647,7 +910,7 @@ struct game_engine conquest_engine =
 	NULL,
 	NULL,
 	conquest_engine_goal_matches_player,
-	NULL,
+	conquest_test_flag,
 	NULL,
 	NULL,
 };
@@ -1000,4 +1263,18 @@ static void conquest_ticket_sounds(
 	}
 
 	return;
+}
+
+long game_engine_conquest_get_base_count(
+	void)
+{
+	return cq.base_count;
+}
+
+struct conquest_base const *game_engine_conquest_get_base(
+	long index)
+{
+	if (index >= 0 && index < cq.base_count)
+		return &cq.bases[index];
+	return NULL;
 }

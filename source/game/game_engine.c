@@ -3569,9 +3569,9 @@ boolean match_game_type(
 	long index;
 
 	/* port: maps tag their spawn points and equipment with the original
-	game types only; conquest plays on those of king of the hill */
+	game types only; conquest plays on CTF team spawns and equipment */
 	if (game_type == game_engine_conquest)
-		game_type = game_engine_king;
+		game_type = game_engine_ctf;
 
 	if (game_engine)
 	{
