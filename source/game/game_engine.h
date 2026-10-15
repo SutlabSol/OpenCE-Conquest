@@ -40,12 +40,14 @@ enum game_engine_type
 	game_engine_race,
 	game_engine_terminator,
 	game_engine_stub,
-	/* port: conquest gametype — battlefield-style multi-point territory capture */
-	game_engine_conquest,
+	/* port: territories gametype — battlefield-style multi-point territory capture */
+	game_engine_territories,
 	number_of_game_engines,
 	first_usable_game_engine_index = game_engine_ctf,
-	last_usable_game_engine_index = game_engine_conquest,
+	last_usable_game_engine_index = game_engine_territories,
 };
+
+#define game_engine_conquest game_engine_territories
 
 enum get_score_type
 {
@@ -138,11 +140,13 @@ struct race_variant
 	long team_scoring;
 };
 
-/* port: conquest gametype's variant options */
-struct conquest_variant
+/* port: territories gametype's variant options */
+struct territories_variant
 {
 	long base_count;
 };
+
+#define conquest_variant territories_variant
 
 union game_engine_variant
 {
@@ -151,7 +155,8 @@ union game_engine_variant
 	struct king_variant king;
 	struct oddball_variant oddball;
 	struct race_variant race;
-	struct conquest_variant conquest;
+	struct territories_variant territories;
+	struct territories_variant conquest;
 };
 
 struct game_variant
@@ -511,8 +516,9 @@ void game_engine_variant_cleanup(
 
 boolean game_engine_display_team_indicators(
 	void);
-boolean game_engine_is_conquest(
+boolean game_engine_is_territories(
 	void);
+#define game_engine_is_conquest game_engine_is_territories
 
 boolean game_engine_can_score(
 	void);

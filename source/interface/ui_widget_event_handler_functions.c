@@ -932,11 +932,13 @@ symbols in this file:
 #include "text/unicode.h"
 #include "halo_menus.h" /* port: PC_MENU_FUNCTION_BASE */
 
-/* port: conquest synthetic playlist profile index */
+/* port: territories synthetic playlist profile index */
 enum
 {
-	CONQUEST_PLAYLIST_PROFILE_INDEX = (long)0xCFFF0001
+	TERRITORIES_PLAYLIST_PROFILE_INDEX = (long)0xCFFF0001
 };
+
+#define CONQUEST_PLAYLIST_PROFILE_INDEX TERRITORIES_PLAYLIST_PROFILE_INDEX
 
 /* ---------- constants */
 
@@ -5828,7 +5830,7 @@ static boolean multiplayer_profile_set_for_game(
 	if (playlist_profile_get(profile_index, &profile))
 	{
 		server = global_network_game_server_get();
-		if (profile_index != CONQUEST_PLAYLIST_PROFILE_INDEX &&
+		if (profile_index != TERRITORIES_PLAYLIST_PROFILE_INDEX &&
 			saved_game_file_get_path_to_enclosing_directory(profile_index, directory_path))
 			saved_game_file_remember_last_used_multiplayer_variant_directory(directory_path);
 		file = fopen("d:\\variant_automation.txt", "r");
@@ -6043,14 +6045,14 @@ short ui_widget_port_gametypes(
 				*last_used = index + 1;
 		}
 	}
-	/* port: insert Conquest at the top of the gametypes list */
+	/* port: insert Territories at the top of the gametypes list */
 	if (count < (word)maximum)
 	{
 		for (index = (short)count; index > 0; index--)
 		{
 			indices[index] = indices[index - 1];
 		}
-		indices[0] = CONQUEST_PLAYLIST_PROFILE_INDEX;
+		indices[0] = TERRITORIES_PLAYLIST_PROFILE_INDEX;
 		count++;
 	}
 	return (short)count;
@@ -6099,7 +6101,7 @@ boolean ui_widget_port_gametype_choose(
 	if (!playlist_profile_get(profile_index, &profile))
 		return FALSE;
 	server = global_network_game_server_get();
-	if (profile_index != CONQUEST_PLAYLIST_PROFILE_INDEX &&
+	if (profile_index != TERRITORIES_PLAYLIST_PROFILE_INDEX &&
 		saved_game_file_get_path_to_enclosing_directory(profile_index, directory_path))
 		saved_game_file_remember_last_used_multiplayer_variant_directory(directory_path);
 	player_ui_set_game_variant(&profile);

@@ -970,8 +970,8 @@ wchar_t *saved_game_file_get_display_name(
 	long memory_unit;
 	long n;
 
-	/* port: conquest synthetic profile */
-	if (profile_index == CONQUEST_PLAYLIST_PROFILE_INDEX)
+	/* port: territories synthetic profile */
+	if (profile_index == TERRITORIES_PLAYLIST_PROFILE_INDEX)
 	{
 		ustrncpy(saved_game_file_display_name, L"Territories", MAX_GAMENAME - 1);
 		saved_game_file_display_name[MAX_GAMENAME - 1] = 0;
@@ -1015,8 +1015,8 @@ boolean saved_game_file_open(
 	long n;
 	boolean success;
 
-	/* port: conquest synthetic profile cannot be opened on disk */
-	if (profile_index == CONQUEST_PLAYLIST_PROFILE_INDEX)
+	/* port: territories synthetic profile cannot be opened on disk */
+	if (profile_index == TERRITORIES_PLAYLIST_PROFILE_INDEX)
 		return FALSE;
 
 	type = SAVED_GAME_FILE_INDEX_TYPE(profile_index);
@@ -1216,8 +1216,8 @@ boolean saved_game_file_get_path_to_enclosing_directory(
 
 	full_path[0] = 0;
 
-	/* port: conquest synthetic profile has no directory on disk */
-	if (profile_index == CONQUEST_PLAYLIST_PROFILE_INDEX)
+	/* port: territories synthetic profile has no directory on disk */
+	if (profile_index == TERRITORIES_PLAYLIST_PROFILE_INDEX)
 		return FALSE;
 
 	if (profile_index != NONE)

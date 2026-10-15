@@ -410,7 +410,8 @@ enum multiplayer_game_text_string
 	_multiplayer_game_text_string_rally,
 	_multiplayer_game_text_string_waiting_for_machine = 34,
 	_multiplayer_game_text_string_waiting_for_player,
-	_multiplayer_game_text_string_conquest = 184,
+	_multiplayer_game_text_string_territories = 184,
+#define _multiplayer_game_text_string_conquest _multiplayer_game_text_string_territories
 	_multiplayer_game_text_string_tickets = 185,
 };
 
@@ -2569,9 +2570,9 @@ static void multiplayer_game_set_text_box_for_game_ruleset(
 				break;
 			}
 			break;
-		case game_engine_conquest:
+		case game_engine_territories:
 			widget->parameters.text_box.string_list_index =
-				_multiplayer_game_text_string_conquest;
+				_multiplayer_game_text_string_territories;
 			break;
 		default:
 			widget->parameters.text_box.string_list_index =
@@ -2674,7 +2675,7 @@ static void multiplayer_game_set_text_box_for_score_limit_type(
 			widget->parameters.text_box.string_list_index =
 				_multiplayer_game_text_string_laps;
 			break;
-		case game_engine_conquest:
+		case game_engine_territories:
 			widget->parameters.text_box.string_list_index =
 				_multiplayer_game_text_string_tickets;
 			break;
@@ -2812,7 +2813,7 @@ static void multiplayer_game_set_bitmap_for_ruleset(
 		case game_engine_race:
 			widget->animation.current_frame_index = _multiplayer_game_bitmap_race;
 			break;
-		case game_engine_conquest:
+		case game_engine_territories:
 			widget->animation.current_frame_index = _multiplayer_game_bitmap_king;
 			break;
 		default:
@@ -2895,9 +2896,9 @@ static void multiplayer_edit_profile_set_ruleset_textbox_string_index(
 			widget->parameters.text_box.string_list_index =
 				_multiplayer_game_text_string_race;
 			break;
-		case game_engine_conquest:
+		case game_engine_territories:
 			widget->parameters.text_box.string_list_index =
-				_multiplayer_game_text_string_conquest;
+				_multiplayer_game_text_string_territories;
 			break;
 		default:
 			widget->parameters.text_box.string_list_index =

@@ -125,6 +125,12 @@ symbols in this file:
 #include "scenario/scenario_definitions.h"
 #include "units/units.h"
 #include "network_coop.h" /* port: port/linux/game/network_coop.c */
+#include "cutscene/cinematics.h"
+#include "game/game_engine_territories.h"
+#include "interface/hud_messaging.h"
+#include "rasterizer/rasterizer.h"
+#include "text/draw_string.h"
+#include "text/font_group.h"
 
 /* ---------- constants */
 
@@ -710,10 +716,6 @@ void custom_render_nav_point(
 
 	player_index = local_player_get_player_index(local_player_index);
 	local_team = (player_index != NONE) ? player_get(player_index)->team_index : NONE;
-	if (game_engine_is_conquest() && local_team != NONE && team_index == local_team)
-	{
-		is_friendly_base = TRUE;
-	}
 
 	arrow = TAG_BLOCK_GET_ELEMENT(
 		&hud_globals->waypoint.arrows,
@@ -819,24 +821,37 @@ void custom_render_nav_point(
 		long bitmap_group_index = hud_globals->waypoint.arrow_bitmap.index;
 		struct bitmap_data const *bitmap = NULL;
 		real_rectangle2d const *clip = NULL;
+		long territory_base_index = -1;
+		struct territories_base const *territory_base = NULL;
 
-		if (is_friendly_base)
+		if (game_engine_is_territories())
 		{
-			bitmap = bitmap_group_get_bitmap_from_sequence(
-				interface_get_tag_index(_interface_bitmap_multiplayer_hud),
-				0,
-				0);
-			clip = &friendly_clip;
+			long count = game_engine_territories_get_base_count();
+			long b;
+
+			for (b = 0; b < count; b++)
+			{
+				struct territories_base const *tb = game_engine_territories_get_base(b);
+				if (tb)
+				{
+					real dx = tb->center.x - position->x;
+					real dy = tb->center.y - position->y;
+					if (dx * dx + dy * dy < 0.25f)
+					{
+						territory_base_index = b;
+						territory_base = tb;
+						break;
+					}
+				}
+			}
 		}
-		else
-		{
-			hud_retrieve_bitmap_and_bounding_rect(
-				bitmap_group_index,
-				arrow->sequence_indices[waypoint_type],
-				0,
-				&bitmap,
-				&clip);
-		}
+
+		hud_retrieve_bitmap_and_bounding_rect(
+			bitmap_group_index,
+			arrow->sequence_indices[waypoint_type],
+			0,
+			&bitmap,
+			&clip);
 
 		if (bitmap && _texture_cache_bitmap_get_hardware_format(
 			(struct bitmap_data *)bitmap, FALSE, TRUE))
@@ -851,42 +866,173 @@ void custom_render_nav_point(
 			alpha = (byte)PIN(fast_ftol_C(arrow->opacity)*255, 0, 255);
 			fade = 1.0f-arrow->fade;
 
-			if (is_friendly_base)
+			if (territory_base_index != -1 && territory_base)
 			{
-				rgb_temp.red = 0.2f;
-				rgb_temp.green = 1.0f;
-				rgb_temp.blue = 0.2f;
-
-				interface_draw_bitmap(
-					bitmap,
-					&point,
-					clip,
-					arrow_scale,
-					theta,
-					PIN(fade, 0.0f, 1.0f));
-			}
-			else
-			{
-				pixel32_to_real_rgb_color(arrow->color, &rgb_temp);
-				if (game_engine_is_conquest())
+				if (territory_base->capturing_team == TERRITORIES_CONTESTED)
 				{
-					if (team_index != NONE && team_index != 2 /* CONQUEST_CONTESTED */)
+					/* Contested: pulse amber / gold */
+					if ((game_time_get() % 30) < 15)
 					{
-						/* Enemy controlled base -> Red arrow */
 						rgb_temp.red = 1.0f;
-						rgb_temp.green = 0.2f;
-						rgb_temp.blue = 0.2f;
+						rgb_temp.green = 0.85f;
+						rgb_temp.blue = 0.1f;
 					}
 					else
 					{
-						/* Neutral or contested base -> Yellow/White */
 						rgb_temp.red = 1.0f;
-						rgb_temp.green = 0.9f;
-						rgb_temp.blue = 0.1f;
+						rgb_temp.green = 0.55f;
+						rgb_temp.blue = 0.05f;
+					}
+				}
+				else if (territory_base->state == territories_base_neutral)
+				{
+					/* Neutral: soft light gray / white */
+					rgb_temp.red = 0.85f;
+					rgb_temp.green = 0.85f;
+					rgb_temp.blue = 0.85f;
+				}
+				else
+				{
+					long owner_team = (territory_base->state == territories_base_red) ? territories_team_red : territories_team_blue;
+					if (local_team == territories_team_red || local_team == territories_team_blue)
+					{
+						if (owner_team == local_team)
+						{
+							/* Friendly: team green */
+							rgb_temp.red = 0.2f;
+							rgb_temp.green = 1.0f;
+							rgb_temp.blue = 0.2f;
+						}
+						else
+						{
+							/* Enemy: team red */
+							rgb_temp.red = 1.0f;
+							rgb_temp.green = 0.22f;
+							rgb_temp.blue = 0.22f;
+						}
+					}
+					else
+					{
+						if (owner_team == territories_team_red)
+						{
+							rgb_temp.red = 1.0f;
+							rgb_temp.green = 0.22f;
+							rgb_temp.blue = 0.22f;
+						}
+						else
+						{
+							rgb_temp.red = 0.25f;
+							rgb_temp.green = 0.58f;
+							rgb_temp.blue = 1.0f;
+						}
+					}
+				}
+
+				rgb_temp.red *= PIN(fade, 0.0f, 1.0f);
+				rgb_temp.green *= PIN(fade, 0.0f, 1.0f);
+				rgb_temp.blue *= PIN(fade, 0.0f, 1.0f);
+
+				if (waypoint_type != _waypoint_off_screen)
+				{
+					/* On-screen: Draw the clean floating letter marker with no backdrop */
+					long font_index = hud_get_font_index();
+
+					if (font_index != NONE)
+					{
+						wchar_t letter_str[2];
+						struct font_header *font = font_definition_get(font_index);
+						short font_h = font ? (font->ascending_height + font->descending_height) : 14;
+						rectangle2d text_bounds;
+						real text_scale = PIN(arrow_scale, 0.75f, 1.25f);
+						real text_y = (real)point.y - (font_h * text_scale * 0.5f);
+						real_argb_color text_argb;
+						real text_alpha = PIN(fade, 0.0f, 1.0f);
+
+						letter_str[0] = (wchar_t)(L'A' + territory_base_index);
+						letter_str[1] = L'\0';
+
+						text_bounds.x0 = (short)(point.x - 30);
+						text_bounds.x1 = (short)(point.x + 30);
+						text_bounds.y0 = (short)text_y;
+						text_bounds.y1 = (short)(text_y + font_h + 10);
+
+						text_argb.alpha = text_alpha;
+						text_argb.red = rgb_temp.red;
+						text_argb.green = rgb_temp.green;
+						text_argb.blue = rgb_temp.blue;
+
+						draw_string_set_draw_mode(font_index, NONE, 2 /* center */, 0, &text_argb);
+						rasterizer_text_set_scale(text_scale, (real)point.x, text_y);
+						rasterizer_draw_unicode_string(&text_bounds, NULL, NULL, 0, letter_str);
+						rasterizer_text_set_scale(1.0f, 0.0f, 0.0f);
 					}
 				}
 				else
 				{
+					/* Off-screen: draw the directional arrow pointing to the base, tinted in base color */
+					hud_draw_bitmap_direct(
+						bitmap,
+						_hud_anchor_center,
+						&point,
+						clip,
+						arrow_scale,
+						theta,
+						((pixel32)alpha<<24) | real_rgb_color_to_pixel32(&rgb_temp),
+						FALSE);
+
+					/* Also draw the letter beside the off-screen arrow */
+					{
+						long font_index = hud_get_font_index();
+						if (font_index != NONE)
+						{
+							wchar_t letter_str[2];
+							struct font_header *font = font_definition_get(font_index);
+							short font_h = font ? (font->ascending_height + font->descending_height) : 14;
+							rectangle2d text_bounds;
+							real text_scale = 0.85f * arrow_scale;
+							real text_y = (real)point.y - (font_h * text_scale * 0.5f);
+							real_argb_color text_argb;
+
+							letter_str[0] = (wchar_t)(L'A' + territory_base_index);
+							letter_str[1] = L'\0';
+
+							text_bounds.x0 = (short)(point.x - 20);
+							text_bounds.x1 = (short)(point.x + 20);
+							text_bounds.y0 = (short)text_y;
+							text_bounds.y1 = (short)(text_y + font_h + 10);
+
+							text_argb.alpha = PIN(fade, 0.0f, 1.0f);
+							text_argb.red = 1.0f;
+							text_argb.green = 1.0f;
+							text_argb.blue = 1.0f;
+
+							draw_string_set_draw_mode(font_index, NONE, 2 /* center */, 0, &text_argb);
+							rasterizer_text_set_scale(text_scale, (real)point.x, text_y);
+							rasterizer_draw_unicode_string(&text_bounds, NULL, NULL, 0, letter_str);
+							rasterizer_text_set_scale(1.0f, 0.0f, 0.0f);
+						}
+					}
+				}
+			}
+			else
+			{
+				if (is_friendly_base)
+				{
+					rgb_temp.red = 0.2f;
+					rgb_temp.green = 1.0f;
+					rgb_temp.blue = 0.2f;
+
+					interface_draw_bitmap(
+						bitmap,
+						&point,
+						clip,
+						arrow_scale,
+						theta,
+						PIN(fade, 0.0f, 1.0f));
+				}
+				else
+				{
+					pixel32_to_real_rgb_color(arrow->color, &rgb_temp);
 					if (team_index == 0)
 					{
 						rgb_temp.red = 1.0f;
@@ -905,20 +1051,21 @@ void custom_render_nav_point(
 						rgb_temp.green = 0.9f;
 						rgb_temp.blue = 0.1f;
 					}
-				}
-				rgb_temp.red *= PIN(fade, 0.0f, 1.0f);
-				rgb_temp.green *= PIN(fade, 0.0f, 1.0f);
-				rgb_temp.blue *= PIN(fade, 0.0f, 1.0f);
 
-				hud_draw_bitmap_direct(
-					bitmap,
-					_hud_anchor_center,
-					&point,
-					clip,
-					arrow_scale,
-					theta,
-					((pixel32)alpha<<24) | real_rgb_color_to_pixel32(&rgb_temp),
-					FALSE);
+					rgb_temp.red *= PIN(fade, 0.0f, 1.0f);
+					rgb_temp.green *= PIN(fade, 0.0f, 1.0f);
+					rgb_temp.blue *= PIN(fade, 0.0f, 1.0f);
+
+					hud_draw_bitmap_direct(
+						bitmap,
+						_hud_anchor_center,
+						&point,
+						clip,
+						arrow_scale,
+						theta,
+						((pixel32)alpha<<24) | real_rgb_color_to_pixel32(&rgb_temp),
+						FALSE);
+				}
 			}
 
 			if (waypoint_type!=_waypoint_off_screen)
@@ -943,12 +1090,26 @@ void custom_render_nav_point(
 					FLAG(_hud_number_show_all_leading_zeros_bit) |
 					FLAG(_hud_number_show_trailing_m_bit);
 
-				bitmap_extent =
-					((clip->x1-clip->x0)*(real)bitmap->width)*0.5f;
+				if (territory_base_index != -1)
+				{
+					bitmap_extent = 10.0f;
+				}
+				else
+				{
+					bitmap_extent =
+						((clip->x1-clip->x0)*(real)bitmap->width)*0.5f;
+				}
 				numbers.placement.offset.x = (short)(long)(
 					bitmap_extent*arrow_scale*0.33000001f + (real)point.x);
-				bitmap_extent =
-					((clip->y1-clip->y0)*(real)bitmap->height)*0.5f;
+				if (territory_base_index != -1)
+				{
+					bitmap_extent = 12.0f;
+				}
+				else
+				{
+					bitmap_extent =
+						((clip->y1-clip->y0)*(real)bitmap->height)*0.5f;
+				}
 				numbers.placement.offset.y = (short)(long)(
 					bitmap_extent*arrow_scale*0.66000003f + (real)point.y);
 				numbers.placement.offset.x -= render.camera.window_bounds.x0;

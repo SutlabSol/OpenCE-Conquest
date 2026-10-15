@@ -69,8 +69,9 @@ struct game_variant *build_game_variant_team_king(
 	struct game_variant *variant);
 struct game_variant *build_game_variant_team_slayer(
 	struct game_variant *variant);
-/* port: conquest */
-struct game_variant *build_game_variant_conquest(
+/* port: territories */
+struct game_variant *build_game_variant_territories(
 	struct game_variant *variant);
+#define build_game_variant_conquest build_game_variant_territories
 
 #endif // __GAME_ENGINE_PLAYLIST_H

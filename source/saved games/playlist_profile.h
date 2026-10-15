@@ -16,9 +16,11 @@ header included in hcex build.
 
 enum
 {
-	/* port: synthetic playlist profile index for Conquest so it appears in the gametype list */
-	CONQUEST_PLAYLIST_PROFILE_INDEX = (long)0xCFFF0001
+	/* port: synthetic playlist profile index for Territories so it appears in the gametype list */
+	TERRITORIES_PLAYLIST_PROFILE_INDEX = (long)0xCFFF0001
 };
+
+#define CONQUEST_PLAYLIST_PROFILE_INDEX TERRITORIES_PLAYLIST_PROFILE_INDEX
 
 /* ---------- structures */
 

@@ -1795,9 +1795,10 @@ static void scoreboard_draw_row(
 	long font_index = hud_get_font_index();
 	/* (brightened as a copy: the team colours serve every row) */
 	real_argb_color color = *row_color;
-	short tab_stops[4];
+	short tab_stops[8];
 	struct font_header *font;
 	long line_height;
+	real current_scale = game_engine_is_territories() ? 0.55f : SCOREBOARD_SCALE;
 
 	if (font_index == NONE)
 		return;
@@ -1810,13 +1811,27 @@ static void scoreboard_draw_row(
 		color.green = MIN(color.green + 0.4f, 1.0f);
 		color.blue = MIN(color.blue + 0.4f, 1.0f);
 	}
-	tab_stops[0] = left;
-	tab_stops[1] = (short)(left + SCOREBOARD_PLACE_WIDTH);
-	tab_stops[2] = (short)(tab_stops[1] + SCOREBOARD_NAME_WIDTH);
-	tab_stops[3] = (short)(tab_stops[2] + SCOREBOARD_SCORE_WIDTH);
-	draw_string_set_tab_stops(tabs ? tab_stops : NULL, tabs ? 4 : 0);
+	if (game_engine_is_territories())
+	{
+		tab_stops[0] = left;                         /* Name */
+		tab_stops[1] = (short)(left + 140);          /* Score */
+		tab_stops[2] = (short)(tab_stops[1] + 67);   /* Kills */
+		tab_stops[3] = (short)(tab_stops[2] + 65);   /* Deaths */
+		tab_stops[4] = (short)(tab_stops[3] + 73);   /* Assists */
+		tab_stops[5] = (short)(tab_stops[4] + 75);   /* Captures */
+		tab_stops[6] = (short)(tab_stops[5] + 85);   /* Ping */
+		draw_string_set_tab_stops(tabs ? tab_stops : NULL, tabs ? 7 : 0);
+	}
+	else
+	{
+		tab_stops[0] = left;
+		tab_stops[1] = (short)(left + SCOREBOARD_PLACE_WIDTH);
+		tab_stops[2] = (short)(tab_stops[1] + SCOREBOARD_NAME_WIDTH);
+		tab_stops[3] = (short)(tab_stops[2] + SCOREBOARD_SCORE_WIDTH);
+		draw_string_set_tab_stops(tabs ? tab_stops : NULL, tabs ? 4 : 0);
+	}
 	/* (the row as wide as the screen once scaled) */
-	bounds.x1 = (short)(bounds.x0 + (bounds.x1 - bounds.x0) / SCOREBOARD_SCALE);
+	bounds.x1 = (short)(bounds.x0 + (bounds.x1 - bounds.x0) / current_scale);
 	if (!tabs)
 		bounds.x0 = left;
 	bounds.y0 = (short)(top + row_index * line_height);
@@ -1973,10 +1988,12 @@ static void scoreboard_rectangle(
 	long row_index,
 	long row_count)
 {
-	rectangle->x0 = (short)(bounds_left + (left - bounds_left) * SCOREBOARD_SCALE);
-	rectangle->x1 = (short)(rectangle->x0 + width * SCOREBOARD_SCALE);
-	rectangle->y0 = (short)(top + row_index * line_height * SCOREBOARD_SCALE);
-	rectangle->y1 = (short)(top + (row_index + row_count) * line_height * SCOREBOARD_SCALE);
+	real current_scale = game_engine_is_territories() ? 0.55f : SCOREBOARD_SCALE;
+
+	rectangle->x0 = (short)(bounds_left + (left - bounds_left) * current_scale);
+	rectangle->x1 = (short)(rectangle->x0 + width * current_scale);
+	rectangle->y0 = (short)(top + row_index * line_height * current_scale);
+	rectangle->y1 = (short)(top + (row_index + row_count) * line_height * current_scale);
 }
 
 static boolean scoreboard_point_in(
@@ -2096,13 +2113,17 @@ static void game_engine_rasterize_scoreboard(
 		return;
 	/* (laid out at full size, then drawn scaled about the title's top left:
 	the screen holds 1/SCOREBOARD_SCALE as much) */
-	width = (short)((bounds.x1 - bounds.x0) / SCOREBOARD_SCALE);
+	real current_scale = game_engine_is_territories() ? 0.55f : SCOREBOARD_SCALE;
+	short column_width = game_engine_is_territories() ? 560 : SCOREBOARD_COLUMN_WIDTH;
+	short column_gap = game_engine_is_territories() ? 25 : SCOREBOARD_COLUMN_GAP;
+
+	width = (short)((bounds.x1 - bounds.x0) / current_scale);
 	/* (port: a network game's lines beneath, the vote running and how to
 	pick a player, have their rows) */
 	pointer_state = halo_scoreboard_pointer_update(network && network_votekick_available(), &pointer);
 	voting = network && network_votekick_get_status(&vote);
 	extra_rows = (voting ? 1 : 0) + (network && pointer_state >= 0 ? 1 : 0);
-	rows = (long)((bounds.y1 - SCOREBOARD_LAYOUT_TOP_ROWS * line_height) / SCOREBOARD_SCALE / line_height) - 2 -
+	rows = (long)((bounds.y1 - SCOREBOARD_LAYOUT_TOP_ROWS * line_height) / current_scale / line_height) - 2 -
 		SCOREBOARD_BOTTOM_ROWS - extra_rows;
 	rows = MAX(rows, 1);
 	if (campaign)
@@ -2115,7 +2136,7 @@ static void game_engine_rasterize_scoreboard(
 		ranked_count = populate_statistic_buffer(ranked, _postgame_statistic_ranking, FALSE);
 		statistic_buffer_in_game_only = FALSE;
 	}
-	team_columns = has_teams && scoreboard_team_columns() && width >= 2 * SCOREBOARD_COLUMN_WIDTH + SCOREBOARD_COLUMN_GAP;
+	team_columns = has_teams && scoreboard_team_columns() && width >= 2 * column_width + column_gap;
 	for (index = 0; index < ranked_count; index++)
 	{
 		struct player_datum *player = player_try_and_get(ranked[index].player_index);
@@ -2133,7 +2154,7 @@ static void game_engine_rasterize_scoreboard(
 	}
 	else
 	{
-		columns = list_counts[0] > rows && width >= 2 * SCOREBOARD_COLUMN_WIDTH + SCOREBOARD_COLUMN_GAP ? 2 : 1;
+		columns = list_counts[0] > rows && width >= 2 * column_width + column_gap ? 2 : 1;
 		total = list_counts[0];
 		page = rows * columns;
 	}
@@ -2162,7 +2183,7 @@ static void game_engine_rasterize_scoreboard(
 		scoreboard_scroll += notches * SCOREBOARD_WHEEL_STEP + pages * page;
 		scoreboard_scroll = PIN(scoreboard_scroll, 0, MAX(total - page, 0));
 	}
-	left = (short)(bounds.x0 + (width - (columns * SCOREBOARD_COLUMN_WIDTH + (columns - 1) * SCOREBOARD_COLUMN_GAP)) / 2);
+	left = (short)(bounds.x0 + (width - (columns * column_width + (columns - 1) * column_gap)) / 2);
 	/* (centred on the rows shown: the title's, the heading's, the longest
 	column's, and the footer telling where the scroll is) */
 	shown_rows = MIN(rows, total);
@@ -2170,16 +2191,16 @@ static void game_engine_rasterize_scoreboard(
 		shown_rows++;
 	shown_rows += extra_rows;
 	{
-		real height = (2 + shown_rows) * line_height * SCOREBOARD_SCALE;
+		real height = (2 + shown_rows) * line_height * current_scale;
 
 		top = (short)(bounds.y0 + ((bounds.y1 - bounds.y0) - height) / 2);
 		top = MAX(top, (short)(SCOREBOARD_MINIMUM_TOP_ROWS * line_height));
 		/* (the panel behind it, half a row beyond its text, fading with it) */
 		{
 			pixel32 background = scoreboard_background_color();
-			real padding = 0.5f * line_height * SCOREBOARD_SCALE;
-			real block_width = (columns * SCOREBOARD_COLUMN_WIDTH + (columns - 1) * SCOREBOARD_COLUMN_GAP) * SCOREBOARD_SCALE;
-			real block_left = bounds.x0 + (left - bounds.x0) * SCOREBOARD_SCALE;
+			real padding = 0.5f * line_height * current_scale;
+			real block_width = (columns * column_width + (columns - 1) * column_gap) * current_scale;
+			real block_left = bounds.x0 + (left - bounds.x0) * current_scale;
 
 			if (background >> 24)
 			{
@@ -2188,14 +2209,14 @@ static void game_engine_rasterize_scoreboard(
 
 				panel.x0 = (short)(block_left - padding);
 				/* (the ping, nearly as wide as its column, given room) */
-				panel.x1 = (short)(block_left + block_width + padding + 8.0f * SCOREBOARD_SCALE);
+				panel.x1 = (short)(block_left + block_width + padding + 8.0f * current_scale);
 				panel.y0 = (short)(top - padding);
 				panel.y1 = (short)(top + height + padding);
 				draw_quad(&panel, ((pixel32)panel_alpha << 24) | (background & 0x00FFFFFF));
 			}
 		}
 	}
-	rasterizer_text_set_scale(SCOREBOARD_SCALE, (real)bounds.x0, (real)top);
+	rasterizer_text_set_scale(current_scale, (real)bounds.x0, (real)top);
 
 	/* port: the pointer's click, on the menu's items (where they are
 	drawn), else on a player's row (below); one elsewhere closes the menu */
@@ -2206,7 +2227,7 @@ static void game_engine_rasterize_scoreboard(
 	clicked = pointer_state > 0 && pointer.left_clicks > 0;
 	/* (the menu opens below its row, beyond the scoreboard if need be, but
 	above the motion sensor's rows) */
-	last_row = (long)((bounds.y1 - top) / (line_height * SCOREBOARD_SCALE)) - SCOREBOARD_BOTTOM_ROWS;
+	last_row = (long)((bounds.y1 - top) / (line_height * current_scale)) - SCOREBOARD_BOTTOM_ROWS;
 	if (pointer_state <= 0 || (scoreboard_menu.player_index != NONE && !player_try_and_get(scoreboard_menu.player_index)))
 		scoreboard_menu.player_index = NONE;
 	if (scoreboard_menu.player_index != NONE)
@@ -2258,16 +2279,28 @@ static void game_engine_rasterize_scoreboard(
 	color.red = color.green = color.blue = 0.7f;
 	scoreboard_draw_row(title_string, FALSE, &color, 0, top, left, FALSE);
 
-	string_list_index = tag_loaded('ustr', "ui\\multiplayer_game_text");
-	column_name = string_list_index != NONE && !campaign ? unicode_string_list_get_string(string_list_index, 0x43) : L"";
-	score_name = string_list_index != NONE ? unicode_string_list_get_string(string_list_index, 0x44) : L"";
-	score_string[0] = 0;
-	if (!campaign)
-		game_engine->format_score_name(score_string);
-	/* port: bounded (the map's column names) */
-	usnprintf(row_string, NUMBEROF(row_string), L"\t%s\t%s\t%s\t%s", column_name, score_name, score_string,
-		network ? L"Ping" : L"");
-	row_string[NUMBEROF(row_string) - 1] = 0;
+	if (game_engine_is_territories())
+	{
+		usnprintf(
+			row_string,
+			NUMBEROF(row_string),
+			L"\tName\tScore\tKills\tDeaths\tAssists\tCaptures\t%s",
+			network ? L"Ping" : L"");
+		row_string[NUMBEROF(row_string) - 1] = 0;
+	}
+	else
+	{
+		string_list_index = tag_loaded('ustr', "ui\\multiplayer_game_text");
+		column_name = string_list_index != NONE && !campaign ? unicode_string_list_get_string(string_list_index, 0x43) : L"";
+		score_name = string_list_index != NONE ? unicode_string_list_get_string(string_list_index, 0x44) : L"";
+		score_string[0] = 0;
+		if (!campaign)
+			game_engine->format_score_name(score_string);
+		/* port: bounded (the map's column names) */
+		usnprintf(row_string, NUMBEROF(row_string), L"\t%s\t%s\t%s\t%s", column_name, score_name, score_string,
+			network ? L"Ping" : L"");
+		row_string[NUMBEROF(row_string) - 1] = 0;
+	}
 	{
 		long column;
 
@@ -2287,7 +2320,7 @@ static void game_engine_rasterize_scoreboard(
 				color.red = color.green = color.blue = 0.5f;
 			}
 			scoreboard_draw_row(row_string, FALSE, &color, 1, top,
-				(short)(left + column * (SCOREBOARD_COLUMN_WIDTH + SCOREBOARD_COLUMN_GAP)), TRUE);
+				(short)(left + column * (column_width + column_gap)), TRUE);
 		}
 	}
 
@@ -2334,15 +2367,38 @@ static void game_engine_rasterize_scoreboard(
 			else
 				usprintf(ping_string, L"%ld", ping);
 		}
-		usnprintf(
-			row_string,
-			NUMBEROF(row_string),
-			L"\t%s\t%s\t%s\t%s",
-			campaign ? L"" : get_place_string(entry),
-			player->name,
-			status_string,
-			ping_string);
-		row_string[NUMBEROF(row_string) - 1] = 0;
+		if (game_engine_is_territories())
+		{
+			long captures = (long)player->statistics.multiplayer_statistics.king_statistics.time_on_hill;
+			long kills = (long)player->statistics.kills[0];
+			long deaths = (long)player->statistics.deaths;
+			long assists = (long)player->statistics.assists[0];
+
+			usnprintf(
+				row_string,
+				NUMBEROF(row_string),
+				L"\t%s\t%s\t%ld\t%ld\t%ld\t%ld\t%s",
+				player->name,
+				status_string,
+				kills,
+				deaths,
+				assists,
+				captures,
+				ping_string);
+			row_string[NUMBEROF(row_string) - 1] = 0;
+		}
+		else
+		{
+			usnprintf(
+				row_string,
+				NUMBEROF(row_string),
+				L"\t%s\t%s\t%s\t%s",
+				campaign ? L"" : get_place_string(entry),
+				player->name,
+				status_string,
+				ping_string);
+			row_string[NUMBEROF(row_string) - 1] = 0;
+		}
 		row_color = has_teams ? &team_colors[PIN(player->team_index, 0, 1)] : &color;
 		/* port: a player talking (or muted) in voice chat, its speaker just
 		right of the name */
@@ -2351,7 +2407,7 @@ static void game_engine_rasterize_scoreboard(
 		{
 			rectangle2d icon;
 			rectangle2d text;
-			short row_left = (short)(left + column * (SCOREBOARD_COLUMN_WIDTH + SCOREBOARD_COLUMN_GAP));
+			short row_left = (short)(left + column * (column_width + column_gap));
 			short size;
 			short middle;
 
@@ -2363,16 +2419,16 @@ static void game_engine_rasterize_scoreboard(
 			measured as the row is laid out, the name at its column's tab
 			stop, then scaled as it is drawn, as scoreboard_rectangle has it;
 			within the name's column) */
-			text.x0 = (short)(row_left + SCOREBOARD_PLACE_WIDTH);
-			text.x1 = (short)(text.x0 + SCOREBOARD_NAME_WIDTH);
+			text.x0 = (short)(row_left + (game_engine_is_territories() ? 0 : SCOREBOARD_PLACE_WIDTH));
+			text.x1 = (short)(text.x0 + (game_engine_is_territories() ? 140 : SCOREBOARD_NAME_WIDTH));
 			text.y0 = (short)(top + (2 + row) * line_height);
 			text.y1 = (short)(text.y0 + line_height);
 			draw_string_set_draw_mode(font_index, NONE, 0, 0, row_color);
 			draw_unicode_string_compute_bounds(&text, player->name, &ink, &cursor);
-			middle = (short)(top + (draw_unicode_string_capital_middle(&text, player->name) - top) * SCOREBOARD_SCALE);
-			scoreboard_rectangle(&icon, bounds.x0, top, line_height, text.x0, SCOREBOARD_NAME_WIDTH, 2 + row, 1);
+			middle = (short)(top + (draw_unicode_string_capital_middle(&text, player->name) - top) * current_scale);
+			scoreboard_rectangle(&icon, bounds.x0, top, line_height, text.x0, (short)(game_engine_is_territories() ? 140 : SCOREBOARD_NAME_WIDTH), 2 + row, 1);
 			size = (short)((icon.y1 - icon.y0) * 2 / 3);
-			name_end = (short)(bounds.x0 + (MAX(ink.x1, text.x0) - bounds.x0) * SCOREBOARD_SCALE);
+			name_end = (short)(bounds.x0 + (MAX(ink.x1, text.x0) - bounds.x0) * current_scale);
 			icon.x0 = (short)MIN(name_end + 4, icon.x1 - size);
 			icon.x1 = (short)(icon.x0 + size);
 			icon.y0 = (short)(middle - size / 2);
@@ -2386,9 +2442,9 @@ static void game_engine_rasterize_scoreboard(
 		{
 			rectangle2d rectangle;
 			rectangle2d menu_rectangle;
-			short row_left = (short)(left + column * (SCOREBOARD_COLUMN_WIDTH + SCOREBOARD_COLUMN_GAP));
+			short row_left = (short)(left + column * (column_width + column_gap));
 
-			scoreboard_rectangle(&rectangle, bounds.x0, top, line_height, row_left, SCOREBOARD_COLUMN_WIDTH,
+			scoreboard_rectangle(&rectangle, bounds.x0, top, line_height, row_left, column_width,
 				2 + row, 1);
 			scoreboard_rectangle(&menu_rectangle, bounds.x0, top, line_height, scoreboard_menu.left,
 				SCOREBOARD_MENU_WIDTH, menu_first_row, menu_item_count);
@@ -2401,7 +2457,7 @@ static void game_engine_rasterize_scoreboard(
 			{
 				scoreboard_menu.player_index = entry->player_index;
 				scoreboard_menu.row_index = 2 + row;
-				scoreboard_menu.left = (short)(row_left + SCOREBOARD_PLACE_WIDTH);
+				scoreboard_menu.left = (short)(row_left + (game_engine_is_territories() ? 0 : SCOREBOARD_PLACE_WIDTH));
 				scoreboard_menu.ban_picked = FALSE;
 				clicked = FALSE;
 			}
@@ -2412,7 +2468,7 @@ static void game_engine_rasterize_scoreboard(
 			row_color,
 			2 + row,
 			top,
-			(short)(left + column * (SCOREBOARD_COLUMN_WIDTH + SCOREBOARD_COLUMN_GAP)),
+			(short)(left + column * (column_width + column_gap)),
 			TRUE);
 	}
 	/* (where the scroll is, and how to move it) */
@@ -2657,7 +2713,17 @@ static void drawline(
 	bounds.y0 = (short)(row_index * line_height);
 	bounds.y1 = (short)((row_index + 1) * line_height + line_spacing);
 	draw_string_set_format(NONE, justification, 0);
-	rasterizer_draw_unicode_string(&bounds, NULL, NULL, 0, string);
+
+	if (game_engine_is_territories() && row_index >= 7)
+	{
+		rasterizer_text_set_scale(0.88f, 0.0f, (real)bounds.y0);
+		rasterizer_draw_unicode_string(&bounds, NULL, NULL, 0, string);
+		rasterizer_text_set_scale(1.0f, 0.0f, 0.0f);
+	}
+	else
+	{
+		rasterizer_draw_unicode_string(&bounds, NULL, NULL, 0, string);
+	}
 
 	return;
 }
@@ -2680,12 +2746,24 @@ void game_engine_post_rasterize_post_game(
 	if (!game_engine)
 		return;
 
-	tab_stops[0] = 50;
-	tab_stops[1] = 125;
-	tab_stops[2] = 250;
-	tab_stops[3] = 350;
-	tab_stops[4] = 410;
-	tab_stops[5] = 500;
+	if (game_engine_is_territories())
+	{
+		tab_stops[0] = 57;   /* Name (screen ~50) */
+		tab_stops[1] = 233;  /* Score (screen ~205) */
+		tab_stops[2] = 318;  /* Kills (screen ~280) */
+		tab_stops[3] = 403;  /* Deaths (screen ~355) */
+		tab_stops[4] = 494;  /* Assists (screen ~435) */
+		tab_stops[5] = 585;  /* Captures (screen ~515) */
+	}
+	else
+	{
+		tab_stops[0] = 50;
+		tab_stops[1] = 125;
+		tab_stops[2] = 250;
+		tab_stops[3] = 350;
+		tab_stops[4] = 410;
+		tab_stops[5] = 500;
+	}
 
 	font_index = hud_globals->messaging.single_player_font.index;
 	get_postgame_hilite_colors(
@@ -2769,6 +2847,17 @@ void game_engine_post_rasterize_post_game(
 		}
 	}
 
+	if (game_engine_is_territories())
+	{
+		usnprintf(
+			row_string,
+			NUMBEROF(row_string),
+			L"\tName\tScore\tKills\tDeaths\tAssists\tCaptures");
+		row_string[NUMBEROF(row_string) - 1] = 0;
+		draw_string_set_tab_stops(tab_stops, NUMBEROF(tab_stops));
+		drawline(row_string, 7, 0);
+	}
+	else
 	{
 		long string_list_index;
 		wchar_t const *column_strings[5];
@@ -2822,81 +2911,173 @@ void game_engine_post_rasterize_post_game(
 		long draw_row = entry_index + 8;
 		struct player_datum *player = player_get(player_index);
 		real_argb_color team_colors[2];
-		wchar_t const *place_string;
 
-		if (player->local_player_index != NONE)
-			draw_string_set_color(&normal_color);
-		else
-			draw_string_set_color(&winner_color);
-		draw_string_set_tab_stops(tab_stops, NUMBEROF(tab_stops));
-		place_string = get_place_string(&entries[entry_index]);
-		usnprintf(row_string, NUMBEROF(row_string), L" \t%s", place_string);
-		row_string[NUMBEROF(row_string) - 1] = 0;
-		drawline(row_string, draw_row, 0);
-		draw_string_set_color(&winner_color);
-
-		if (global_variant.universal_variant.teams)
+		if (game_engine_is_territories())
 		{
-			long team_index = player->team_index;
+			long captures = (long)player->statistics.multiplayer_statistics.king_statistics.time_on_hill;
+			long kills = (long)player->statistics.kills[0];
+			long deaths = (long)player->statistics.deaths;
+			long assists = (long)player->statistics.assists[0];
 
-			team_colors[0].red = 0.8f;
-			team_colors[0].green = 0.4f;
-			team_colors[0].blue = 0.4f;
-			team_colors[0].alpha = 1.0f;
-			team_colors[1].red = 0.4f;
-			team_colors[1].green = 0.4f;
-			team_colors[1].blue = 0.8f;
-			team_colors[1].alpha = 1.0f;
-			draw_string_set_color(
-				&team_colors[PIN(team_index, 0, 1)]);
+			draw_string_set_tab_stops(tab_stops, NUMBEROF(tab_stops));
+
+			if (global_variant.universal_variant.teams)
+			{
+				long team_index = player->team_index;
+
+				team_colors[0].red = 0.8f;
+				team_colors[0].green = 0.4f;
+				team_colors[0].blue = 0.4f;
+				team_colors[0].alpha = 1.0f;
+				team_colors[1].red = 0.4f;
+				team_colors[1].green = 0.4f;
+				team_colors[1].blue = 0.8f;
+				team_colors[1].alpha = 1.0f;
+				draw_string_set_color(
+					&team_colors[PIN(team_index, 0, 1)]);
+			}
+			else
+			{
+				if (player->local_player_index != NONE)
+					draw_string_set_color(&normal_color);
+				else
+					draw_string_set_color(&winner_color);
+			}
+			usnprintf(row_string, NUMBEROF(row_string), L" \t%s", player->name);
+			row_string[NUMBEROF(row_string) - 1] = 0;
+			drawline(row_string, draw_row, 0);
+			draw_string_set_color(&winner_color);
+
+			if (!postgame_statistic_get_rating(player_index, _postgame_statistic_score, FALSE))
+				draw_string_set_color(&hilite_color);
+			game_engine->format_player_score(
+				player_index,
+				score_string);
+			usnprintf(row_string, NUMBEROF(row_string), L" \t \t%s", score_string);
+			row_string[NUMBEROF(row_string) - 1] = 0;
+			drawline(row_string, draw_row, 0);
+			draw_string_set_color(&winner_color);
+
+			if (!postgame_statistic_get_rating(player_index, _postgame_statistic_kills, FALSE))
+				draw_string_set_color(&hilite_color);
+			usnprintf(
+				row_string,
+				NUMBEROF(row_string),
+				L" \t \t \t%d",
+				kills);
+			row_string[NUMBEROF(row_string) - 1] = 0;
+			drawline(row_string, draw_row, 0);
+			draw_string_set_color(&winner_color);
+
+			if (!postgame_statistic_get_rating(player_index, _postgame_statistic_deaths, FALSE))
+				draw_string_set_color(&hilite_color);
+			usnprintf(
+				row_string,
+				NUMBEROF(row_string),
+				L" \t \t \t \t%d",
+				deaths);
+			row_string[NUMBEROF(row_string) - 1] = 0;
+			drawline(row_string, draw_row, 0);
+			draw_string_set_color(&winner_color);
+
+			if (!postgame_statistic_get_rating(player_index, _postgame_statistic_assists, FALSE))
+				draw_string_set_color(&hilite_color);
+			usnprintf(
+				row_string,
+				NUMBEROF(row_string),
+				L" \t \t \t \t \t%d",
+				assists);
+			row_string[NUMBEROF(row_string) - 1] = 0;
+			drawline(row_string, draw_row, 0);
+			draw_string_set_color(&winner_color);
+
+			usnprintf(
+				row_string,
+				NUMBEROF(row_string),
+				L" \t \t \t \t \t \t%d",
+				captures);
+			row_string[NUMBEROF(row_string) - 1] = 0;
+			drawline(row_string, draw_row, 0);
+			draw_string_set_tab_stops(tab_stops, NUMBEROF(tab_stops));
 		}
-		usnprintf(row_string, NUMBEROF(row_string), L" \t \t%s", player->name);
-		row_string[NUMBEROF(row_string) - 1] = 0;
-		drawline(row_string, draw_row, 0);
-		draw_string_set_color(&winner_color);
+		else
+		{
+			wchar_t const *place_string;
 
-		if (!postgame_statistic_get_rating(player_index, _postgame_statistic_score, FALSE))
-			draw_string_set_color(&hilite_color);
-		game_engine->format_player_score(
-			player_index,
-			score_string);
-		usnprintf(row_string, NUMBEROF(row_string), L" \t \t \t%s", score_string);
-		row_string[NUMBEROF(row_string) - 1] = 0;
-		drawline(row_string, draw_row, 0);
-		draw_string_set_color(&winner_color);
+			if (player->local_player_index != NONE)
+				draw_string_set_color(&normal_color);
+			else
+				draw_string_set_color(&winner_color);
+			draw_string_set_tab_stops(tab_stops, NUMBEROF(tab_stops));
+			place_string = get_place_string(&entries[entry_index]);
+			usnprintf(row_string, NUMBEROF(row_string), L" \t%s", place_string);
+			row_string[NUMBEROF(row_string) - 1] = 0;
+			drawline(row_string, draw_row, 0);
+			draw_string_set_color(&winner_color);
 
-		if (!postgame_statistic_get_rating(player_index, _postgame_statistic_kills, FALSE))
-			draw_string_set_color(&hilite_color);
-		usnprintf(
-			row_string,
-			NUMBEROF(row_string),
-			L" \t \t \t \t%d",
-			(long)player->statistics.kills[0]);
-		row_string[NUMBEROF(row_string) - 1] = 0;
-		drawline(row_string, draw_row, 0);
-		draw_string_set_color(&winner_color);
+			if (global_variant.universal_variant.teams)
+			{
+				long team_index = player->team_index;
 
-		if (!postgame_statistic_get_rating(player_index, _postgame_statistic_assists, FALSE))
-			draw_string_set_color(&hilite_color);
-		usnprintf(
-			row_string,
-			NUMBEROF(row_string),
-			L" \t \t \t \t \t%d",
-			(long)player->statistics.assists[0]);
-		row_string[NUMBEROF(row_string) - 1] = 0;
-		drawline(row_string, draw_row, 0);
-		draw_string_set_color(&winner_color);
+				team_colors[0].red = 0.8f;
+				team_colors[0].green = 0.4f;
+				team_colors[0].blue = 0.4f;
+				team_colors[0].alpha = 1.0f;
+				team_colors[1].red = 0.4f;
+				team_colors[1].green = 0.4f;
+				team_colors[1].blue = 0.8f;
+				team_colors[1].alpha = 1.0f;
+				draw_string_set_color(
+					&team_colors[PIN(team_index, 0, 1)]);
+			}
+			usnprintf(row_string, NUMBEROF(row_string), L" \t \t%s", player->name);
+			row_string[NUMBEROF(row_string) - 1] = 0;
+			drawline(row_string, draw_row, 0);
+			draw_string_set_color(&winner_color);
 
-		if (!postgame_statistic_get_rating(player_index, _postgame_statistic_deaths, FALSE))
-			draw_string_set_color(&hilite_color);
-		usnprintf(
-			row_string,
-			NUMBEROF(row_string),
-			L" \t \t \t \t \t \t%d",
-			(long)player->statistics.deaths);
-		row_string[NUMBEROF(row_string) - 1] = 0;
-		drawline(row_string, draw_row, 0);
-		draw_string_set_tab_stops(tab_stops, NUMBEROF(tab_stops));
+			if (!postgame_statistic_get_rating(player_index, _postgame_statistic_score, FALSE))
+				draw_string_set_color(&hilite_color);
+			game_engine->format_player_score(
+				player_index,
+				score_string);
+			usnprintf(row_string, NUMBEROF(row_string), L" \t \t \t%s", score_string);
+			row_string[NUMBEROF(row_string) - 1] = 0;
+			drawline(row_string, draw_row, 0);
+			draw_string_set_color(&winner_color);
+
+			if (!postgame_statistic_get_rating(player_index, _postgame_statistic_kills, FALSE))
+				draw_string_set_color(&hilite_color);
+			usnprintf(
+				row_string,
+				NUMBEROF(row_string),
+				L" \t \t \t \t%d",
+				(long)player->statistics.kills[0]);
+			row_string[NUMBEROF(row_string) - 1] = 0;
+			drawline(row_string, draw_row, 0);
+			draw_string_set_color(&winner_color);
+
+			if (!postgame_statistic_get_rating(player_index, _postgame_statistic_assists, FALSE))
+				draw_string_set_color(&hilite_color);
+			usnprintf(
+				row_string,
+				NUMBEROF(row_string),
+				L" \t \t \t \t \t%d",
+				(long)player->statistics.assists[0]);
+			row_string[NUMBEROF(row_string) - 1] = 0;
+			drawline(row_string, draw_row, 0);
+			draw_string_set_color(&winner_color);
+
+			if (!postgame_statistic_get_rating(player_index, _postgame_statistic_deaths, FALSE))
+				draw_string_set_color(&hilite_color);
+			usnprintf(
+				row_string,
+				NUMBEROF(row_string),
+				L" \t \t \t \t \t \t%d",
+				(long)player->statistics.deaths);
+			row_string[NUMBEROF(row_string) - 1] = 0;
+			drawline(row_string, draw_row, 0);
+			draw_string_set_tab_stops(tab_stops, NUMBEROF(tab_stops));
+		}
 	}
 
 	{
@@ -3569,8 +3750,8 @@ boolean match_game_type(
 	long index;
 
 	/* port: maps tag their spawn points and equipment with the original
-	game types only; conquest plays on CTF team spawns and equipment */
-	if (game_type == game_engine_conquest)
+	game types only; territories plays on CTF team spawns and equipment */
+	if (game_type == game_engine_territories)
 		game_type = game_engine_ctf;
 
 	if (game_engine)
@@ -5252,10 +5433,10 @@ boolean game_engine_display_team_indicators(
 	return display;
 }
 
-boolean game_engine_is_conquest(
+boolean game_engine_is_territories(
 	void)
 {
-	return game_engine_running() && global_variant.game_engine_index == game_engine_conquest;
+	return game_engine_running() && global_variant.game_engine_index == game_engine_territories;
 }
 
 boolean game_engine_can_score(
@@ -6863,13 +7044,13 @@ struct game_variant *build_game_variant_team_rally(
 	return variant;
 }
 
-/* port: conquest default variant */
-struct game_variant *build_game_variant_conquest(
+/* port: territories default variant */
+struct game_variant *build_game_variant_territories(
 	struct game_variant *variant)
 {
 	struct game_variant result = { 0 };
 
-	result.game_engine_index = game_engine_conquest;
+	result.game_engine_index = game_engine_territories;
 	SET_FLAG(result.universal_variant.flags, _game_variant_draw_object_in_motion_sensor_bit, TRUE);
 	SET_FLAG(result.universal_variant.flags, _game_variant_allow_friendly_navpoints_bit, TRUE);
 	SET_FLAG(result.universal_variant.flags, _game_variant_infinite_grenades_bit, FALSE);
@@ -6880,7 +7061,7 @@ struct game_variant *build_game_variant_conquest(
 	result.universal_variant.score_to_win = 100;
 	result.universal_variant.teams = TRUE;
 	result.universal_variant.vehicle_set = _game_engine_vehicles_warthog;
-	result.game_engine_variant.conquest.base_count = 5;
+	result.game_engine_variant.territories.base_count = 5;
 	result.flags = 1;
 	result.universal_variant.health = 1.0f;
 	result.universal_variant.lives = 0;
@@ -6893,6 +7074,12 @@ struct game_variant *build_game_variant_conquest(
 	*variant = result;
 
 	return variant;
+}
+
+struct game_variant *build_game_variant_conquest(
+	struct game_variant *variant)
+{
+	return build_game_variant_territories(variant);
 }
 
 long postgame_statistic_get_rating(
@@ -7126,8 +7313,8 @@ struct game_variant *game_engine_get_variant_by_name(
 	else if (csstrcmp(name, "team_king") == 0)
 		result = *build_game_variant_team_king(&temporary);
 	/* port: conquest / territories */
-	else if (csstrcmp(name, "conquest") == 0 || csstrcmp(name, "territories") == 0)
-		result = *build_game_variant_conquest(&temporary);
+	else if (csstrcmp(name, "territories") == 0 || csstrcmp(name, "conquest") == 0)
+		result = *build_game_variant_territories(&temporary);
 
 	*variant = result;
 
@@ -7261,9 +7448,9 @@ void game_engine_variant_cleanup(
 	struct game_variant original = *variant;
 
 	variant->human_readable_game_description[NUMBEROF(variant->human_readable_game_description) - 1] = 0;
-	/* port: conquest (index 8) is kept; any other number is pinned to the
+	/* port: territories (index 8) is kept; any other number is pinned to the
 	original's 1..5 */
-	if (variant->game_engine_index != game_engine_conquest)
+	if (variant->game_engine_index != game_engine_territories)
 		variant->game_engine_index = PIN(variant->game_engine_index, 1, 5);
 	variant->universal_variant.teams = !!variant->universal_variant.teams;
 	variant->universal_variant.odd_man_out = !!variant->universal_variant.odd_man_out;
@@ -7301,15 +7488,15 @@ void game_engine_variant_cleanup(
 			PIN(variant->game_engine_variant.oddball.ball_spawn_count, 0, MAXIMUM_ODDBALLS);
 		break;
 
-	case game_engine_conquest:
-		/* port: conquest is always a team game */
+	case game_engine_territories:
+		/* port: territories is always a team game */
 		variant->universal_variant.teams = TRUE;
 		if (variant->universal_variant.goal_radar != _radar_none)
 			variant->universal_variant.goal_radar = _radar_nav_point;
-		if (variant->game_engine_variant.conquest.base_count < 3 ||
-			variant->game_engine_variant.conquest.base_count > 6)
+		if (variant->game_engine_variant.territories.base_count < 3 ||
+			variant->game_engine_variant.territories.base_count > 6)
 		{
-			variant->game_engine_variant.conquest.base_count = 5;
+			variant->game_engine_variant.territories.base_count = 5;
 		}
 		if (variant->universal_variant.score_to_win <= 0)
 			variant->universal_variant.score_to_win = 100;
@@ -9581,8 +9768,8 @@ long game_engine_king_write_network_state(byte *buffer, long size);
 boolean game_engine_king_read_network_state(byte const *buffer, long size, boolean first);
 long game_engine_race_write_network_state(byte *buffer, long size);
 boolean game_engine_race_read_network_state(byte const *buffer, long size, boolean first);
-long game_engine_conquest_write_network_state(byte *buffer, long size);
-boolean game_engine_conquest_read_network_state(byte const *buffer, long size, boolean first);
+long game_engine_territories_write_network_state(byte *buffer, long size);
+boolean game_engine_territories_read_network_state(byte const *buffer, long size, boolean first);
 
 /* the distributed netcode (port/linux/game/network_damage.c): a player's
 score as the game type has it (with its killing blows' messages), 0 for
@@ -9619,7 +9806,7 @@ long game_engine_write_network_state(
 	case game_engine_oddball: written = game_engine_oddball_write_network_state(buffer, size); break;
 	case game_engine_king: written = game_engine_king_write_network_state(buffer, size); break;
 	case game_engine_race: written = game_engine_race_write_network_state(buffer, size); break;
-	case game_engine_conquest: written = game_engine_conquest_write_network_state(buffer, size); break;
+	case game_engine_territories: written = game_engine_territories_write_network_state(buffer, size); break;
 	default: written = 0; break;
 	}
 	return sizeof(postgame_state) + written;
@@ -9647,7 +9834,7 @@ void game_engine_read_network_state(
 	case game_engine_oddball: read = game_engine_oddball_read_network_state(buffer, size, first); break;
 	case game_engine_king: read = game_engine_king_read_network_state(buffer, size, first); break;
 	case game_engine_race: read = game_engine_race_read_network_state(buffer, size, first); break;
-	case game_engine_conquest: read = game_engine_conquest_read_network_state(buffer, size, first); break;
+	case game_engine_territories: read = game_engine_territories_read_network_state(buffer, size, first); break;
 	default: read = TRUE; break;
 	}
 	/* (a state the game type refused is not had: the first it takes is,

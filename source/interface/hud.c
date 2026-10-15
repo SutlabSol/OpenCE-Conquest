@@ -82,7 +82,7 @@ symbols in this file:
 #include "cutscene/cinematics.h"
 #include "devices/device_controls.h"
 #include "game/game_engine.h"
-#include "game/game_engine_conquest.h"
+#include "game/game_engine_territories.h"
 #include "game/game_globals.h"
 #include "game/players.h"
 #include "interface/hud.h"
@@ -910,7 +910,7 @@ static void hud_draw_friendly_indicator(
 	point2d position;
 	real_rectangle2d clip;
 
-	if (game_engine_is_conquest())
+	if (game_engine_is_territories())
 		return;
 
 	player = player_get(player_index);
@@ -1120,7 +1120,7 @@ void hud_player_name_color(
 {
 	if (ally)
 	{
-		if (game_engine_is_conquest())
+		if (game_engine_is_territories())
 		{
 			color->alpha = 1.0f;
 			color->red = 0.2f;
@@ -1252,7 +1252,7 @@ static void hud_draw_player_names(
 		return;
 	team_index = player_get(player_index)->team_index;
 	/* the campaign always draws teammate triangles (hud_draw_players) */
-	indicators = (game_engine_display_team_indicators() && !game_engine_is_conquest()) || !game_engine_running();
+	indicators = (game_engine_display_team_indicators() && !game_engine_is_territories()) || !game_engine_running();
 	enemy_range = hud_player_name_enemy_range();
 	/* (the players the motion tracker would show this local player) */
 	game_engine_motion_sensor_viewer(render.local_player_index);
@@ -1264,7 +1264,7 @@ static void hud_draw_player_names(
 
 		if (iterator.datum_index == player_index || player->unit_index == NONE)
 			continue;
-		if (!game_engine_is_conquest())
+		if (!game_engine_is_territories())
 		{
 			if ((ally && setting == _player_names_enemies) || (!ally && setting == _player_names_allies) ||
 				!game_engine_draw_object_in_motion_sensor(player->unit_index))
@@ -1278,11 +1278,90 @@ static void hud_draw_player_names(
 	return;
 }
 
-/* port: draw conquest base status indicators [A] [B] [C] at top center of HUD */
-#define CONQUEST_HUD_BADGE_SCALE 0.55f
-#define CONQUEST_HUD_BADGE_SPACING 18
+/* port: draw territories base status indicators and team ticket bars at top center of HUD */
+#define TERRITORIES_HUD_BADGE_SCALE 0.55f
+#define TERRITORIES_HUD_BADGE_SPACING 18
+#define TERRITORIES_HUD_BAR_WIDTH 46.0f
+#define TERRITORIES_HUD_BAR_HEIGHT 5.0f
+#define TERRITORIES_HUD_BAR_GAP 2.0f
 
-static void hud_draw_conquest_bases(
+
+static void territories_hud_draw_solid_quad(
+	real x0, real y0, real x1, real y1,
+	real_argb_color const *color)
+{
+	struct dynamic_screen_vertex vertices[4];
+	struct rasterizer_dynamic_screen_geometry_parameters parameters;
+	struct game_globals *game_globals;
+	struct game_globals_rasterizer_data *rasterizer_data;
+	struct bitmap_data *map = NULL;
+	pixel32 c;
+
+	if (x1 <= x0 || y1 <= y0)
+		return;
+
+	global_scenario_get();
+	game_globals = scenario_get_game_globals();
+	if (game_globals && game_globals->rasterizer_data.count > 0)
+	{
+		rasterizer_data = TAG_BLOCK_GET_ELEMENT(
+			&game_globals->rasterizer_data,
+			0,
+			struct game_globals_rasterizer_data);
+		if (rasterizer_data && rasterizer_data->default_textures[0].index != NONE)
+		{
+			struct bitmap_group *group = bitmap_group_get(rasterizer_data->default_textures[0].index);
+			if (group && group->bitmaps.count > 1)
+				map = TAG_BLOCK_GET_ELEMENT(&group->bitmaps, 1, struct bitmap_data);
+			else if (group && group->bitmaps.count > 0)
+				map = TAG_BLOCK_GET_ELEMENT(&group->bitmaps, 0, struct bitmap_data);
+		}
+	}
+
+	if (!map)
+		return;
+
+	c = (((pixel32)(long)(color->alpha * 255.0f)) << 24) |
+	    (((pixel32)(long)(color->red   * 255.0f)) << 16) |
+	    (((pixel32)(long)(color->green * 255.0f)) << 8)  |
+	    ((pixel32)(long)(color->blue  * 255.0f));
+
+	vertices[0].position.x = x0;
+	vertices[0].position.y = y0;
+	vertices[0].texture_coordinates.x = 0.0f;
+	vertices[0].texture_coordinates.y = 0.0f;
+	vertices[0].color = c;
+
+	vertices[1].position.x = x1;
+	vertices[1].position.y = y0;
+	vertices[1].texture_coordinates.x = 1.0f;
+	vertices[1].texture_coordinates.y = 0.0f;
+	vertices[1].color = c;
+
+	vertices[2].position.x = x1;
+	vertices[2].position.y = y1;
+	vertices[2].texture_coordinates.x = 1.0f;
+	vertices[2].texture_coordinates.y = 1.0f;
+	vertices[2].color = c;
+
+	vertices[3].position.x = x0;
+	vertices[3].position.y = y1;
+	vertices[3].texture_coordinates.x = 0.0f;
+	vertices[3].texture_coordinates.y = 1.0f;
+	vertices[3].color = c;
+
+	csmemset(&parameters, 0, sizeof(parameters));
+	parameters.map_scale[0].i = parameters.map_scale[0].j = 1.0f;
+	parameters.map_texture_scale[0].i = parameters.map_texture_scale[0].j = 1.0f;
+	parameters.meter_parameters = NULL;
+	parameters.point_sampled = FALSE;
+	parameters.framebuffer_blend_function = 0; /* alpha blend */
+	parameters.map[0] = map;
+
+	rasterizer_psuedo_dynamic_screen_quad_draw(&parameters, vertices);
+}
+
+static void hud_draw_territories_bases(
 	void)
 {
 	long base_count;
@@ -1298,11 +1377,11 @@ static void hud_draw_conquest_bases(
 	real start_x;
 	long i;
 
-	if (!game_engine_is_conquest() || !hud_scripted_globals->show_hud || cinematic_in_progress())
+	if (!game_engine_is_territories() || !hud_scripted_globals->show_hud || cinematic_in_progress())
 		return;
 
-	base_count = game_engine_conquest_get_base_count();
-	if (base_count <= 0 || base_count > CONQUEST_MAXIMUM_BASES)
+	base_count = game_engine_territories_get_base_count();
+	if (base_count <= 0 || base_count > TERRITORIES_MAXIMUM_BASES)
 		return;
 
 	player_index = local_player_get_player_index(render.local_player_index);
@@ -1326,13 +1405,131 @@ static void hud_draw_conquest_bases(
 		-render.camera.viewport_bounds.y0);
 
 	center_x = (window_bounds.x0 + window_bounds.x1) / 2.0f;
-	top_y = (short)(window_bounds.y0 + 3);
 
-	start_x = center_x - ((base_count - 1) * CONQUEST_HUD_BADGE_SPACING) / 2.0f;
+	/* --- Row 1: Team Ticket Numbers and Depleting Horizontal Ticket Bars --- */
+	{
+		long red_tickets = game_engine_territories_get_tickets(territories_team_red);
+		long blue_tickets = game_engine_territories_get_tickets(territories_team_blue);
+		long starting_tickets = game_engine_territories_get_starting_tickets();
+		real red_fraction = starting_tickets > 0 ? PIN((real)red_tickets / (real)starting_tickets, 0.0f, 1.0f) : 0.0f;
+		real blue_fraction = starting_tickets > 0 ? PIN((real)blue_tickets / (real)starting_tickets, 0.0f, 1.0f) : 0.0f;
+
+		real bar_y0 = (real)(window_bounds.y0 + 3);
+		real bar_y1 = bar_y0 + TERRITORIES_HUD_BAR_HEIGHT;
+
+		real red_bar_right = center_x - TERRITORIES_HUD_BAR_GAP;
+		real red_bar_left  = red_bar_right - TERRITORIES_HUD_BAR_WIDTH;
+
+		real blue_bar_left  = center_x + TERRITORIES_HUD_BAR_GAP;
+		real blue_bar_right = blue_bar_left + TERRITORIES_HUD_BAR_WIDTH;
+
+		real red_fill_width = TERRITORIES_HUD_BAR_WIDTH * red_fraction;
+		real blue_fill_width = TERRITORIES_HUD_BAR_WIDTH * blue_fraction;
+
+		real_argb_color track_color;
+		real_argb_color border_color;
+		real_argb_color red_bar_color;
+		real_argb_color blue_bar_color;
+		real_argb_color red_text_color;
+		real_argb_color blue_text_color;
+
+		wchar_t red_tickets_str[16];
+		wchar_t blue_tickets_str[16];
+		rectangle2d num_bounds;
+		real red_text_center_x = red_bar_left - 18.0f;
+		real blue_text_center_x = blue_bar_right + 18.0f;
+		short ticket_text_y = (short)(window_bounds.y0 + 1);
+
+		track_color.alpha = 0.55f;
+		track_color.red = 0.05f;
+		track_color.green = 0.05f;
+		track_color.blue = 0.05f;
+
+		border_color.alpha = 0.75f;
+		border_color.red = 0.25f;
+		border_color.green = 0.25f;
+		border_color.blue = 0.25f;
+
+		red_bar_color.alpha = 0.95f;
+		red_bar_color.red = 0.95f;
+		red_bar_color.green = 0.22f;
+		red_bar_color.blue = 0.22f;
+
+		blue_bar_color.alpha = 0.95f;
+		blue_bar_color.red = 0.25f;
+		blue_bar_color.green = 0.58f;
+		blue_bar_color.blue = 1.0f;
+
+		/* Low ticket alert: flash when under 25 tickets */
+		if (red_tickets <= 25 && ((game_time_get() % 20) < 10))
+			red_bar_color.alpha = 0.35f;
+		if (blue_tickets <= 25 && ((game_time_get() % 20) < 10))
+			blue_bar_color.alpha = 0.35f;
+
+		/* 1. Red Bar Border & Background Track */
+		territories_hud_draw_solid_quad(red_bar_left - 1.0f, bar_y0 - 1.0f, red_bar_right + 1.0f, bar_y1 + 1.0f, &border_color);
+		territories_hud_draw_solid_quad(red_bar_left, bar_y0, red_bar_right, bar_y1, &track_color);
+
+		/* 2. Red Depleting Fill: depletes from center towards the left side */
+		if (red_fill_width > 0.5f)
+		{
+			territories_hud_draw_solid_quad(red_bar_left, bar_y0, red_bar_left + red_fill_width, bar_y1, &red_bar_color);
+		}
+
+		/* 3. Blue Bar Border & Background Track */
+		territories_hud_draw_solid_quad(blue_bar_left - 1.0f, bar_y0 - 1.0f, blue_bar_right + 1.0f, bar_y1 + 1.0f, &border_color);
+		territories_hud_draw_solid_quad(blue_bar_left, bar_y0, blue_bar_right, bar_y1, &track_color);
+
+		/* 4. Blue Depleting Fill: mirror of red, depletes from center towards the right side */
+		if (blue_fill_width > 0.5f)
+		{
+			territories_hud_draw_solid_quad(blue_bar_right - blue_fill_width, bar_y0, blue_bar_right, bar_y1, &blue_bar_color);
+		}
+
+		/* 5. Ticket Numbers */
+		usprintf(red_tickets_str, L"%d", red_tickets);
+		usprintf(blue_tickets_str, L"%d", blue_tickets);
+
+		red_text_color.alpha = 1.0f;
+		red_text_color.red = 1.0f;
+		red_text_color.green = 0.35f;
+		red_text_color.blue = 0.35f;
+
+		blue_text_color.alpha = 1.0f;
+		blue_text_color.red = 0.35f;
+		blue_text_color.green = 0.70f;
+		blue_text_color.blue = 1.0f;
+
+		/* Red Ticket Number */
+		num_bounds.x0 = (short)(red_text_center_x - 30.0f);
+		num_bounds.x1 = (short)(red_text_center_x + 30.0f);
+		num_bounds.y0 = ticket_text_y;
+		num_bounds.y1 = (short)(ticket_text_y + font_height + 20);
+
+		draw_string_set_draw_mode(font_index, NONE, 2 /* center */, 0, &red_text_color);
+		rasterizer_text_set_scale(TERRITORIES_HUD_BADGE_SCALE, red_text_center_x, (real)ticket_text_y);
+		rasterizer_draw_unicode_string(&num_bounds, NULL, NULL, 0, red_tickets_str);
+		rasterizer_text_set_scale(1.0f, 0.0f, 0.0f);
+
+		/* Blue Ticket Number */
+		num_bounds.x0 = (short)(blue_text_center_x - 30.0f);
+		num_bounds.x1 = (short)(blue_text_center_x + 30.0f);
+		num_bounds.y0 = ticket_text_y;
+		num_bounds.y1 = (short)(ticket_text_y + font_height + 20);
+
+		draw_string_set_draw_mode(font_index, NONE, 2 /* center */, 0, &blue_text_color);
+		rasterizer_text_set_scale(TERRITORIES_HUD_BADGE_SCALE, blue_text_center_x, (real)ticket_text_y);
+		rasterizer_draw_unicode_string(&num_bounds, NULL, NULL, 0, blue_tickets_str);
+		rasterizer_text_set_scale(1.0f, 0.0f, 0.0f);
+	}
+
+	/* --- Row 2: Capture Point Badges [A] [B] [C] [D] --- */
+	top_y = (short)(window_bounds.y0 + 11);
+	start_x = center_x - ((base_count - 1) * TERRITORIES_HUD_BADGE_SPACING) / 2.0f;
 
 	for (i = 0; i < base_count; i++)
 	{
-		struct conquest_base const *base = game_engine_conquest_get_base(i);
+		struct territories_base const *base = game_engine_territories_get_base(i);
 		wchar_t badge[4];
 		real_argb_color color;
 		rectangle2d bounds;
@@ -1346,7 +1543,7 @@ static void hud_draw_conquest_bases(
 		badge[2] = L']';
 		badge[3] = L'\0';
 
-		badge_center_x = start_x + (real)(i * CONQUEST_HUD_BADGE_SPACING);
+		badge_center_x = start_x + (real)(i * TERRITORIES_HUD_BADGE_SPACING);
 		bounds.x0 = (short)(badge_center_x - 30.0f);
 		bounds.x1 = (short)(badge_center_x + 30.0f);
 		bounds.y0 = top_y;
@@ -1354,14 +1551,14 @@ static void hud_draw_conquest_bases(
 
 		color.alpha = 1.0f;
 
-		if (base->capturing_team == CONQUEST_CONTESTED && ((game_time_get() % 30) < 15))
+		if (base->capturing_team == TERRITORIES_CONTESTED && ((game_time_get() % 30) < 15))
 		{
 			/* Contested: pulse amber */
 			color.red = 1.0f;
 			color.green = 0.85f;
 			color.blue = 0.1f;
 		}
-		else if (base->state == conquest_base_neutral)
+		else if (base->state == territories_base_neutral)
 		{
 			/* Neutral: soft light gray */
 			color.red = 0.85f;
@@ -1370,8 +1567,8 @@ static void hud_draw_conquest_bases(
 		}
 		else
 		{
-			long owner_team = (base->state == conquest_base_red) ? conquest_team_red : conquest_team_blue;
-			if (local_team == conquest_team_red || local_team == conquest_team_blue)
+			long owner_team = (base->state == territories_base_red) ? territories_team_red : territories_team_blue;
+			if (local_team == territories_team_red || local_team == territories_team_blue)
 			{
 				if (owner_team == local_team)
 				{
@@ -1391,7 +1588,7 @@ static void hud_draw_conquest_bases(
 			else
 			{
 				/* Spectator or non-team */
-				if (owner_team == conquest_team_red)
+				if (owner_team == territories_team_red)
 				{
 					color.red = 1.0f;
 					color.green = 0.2f;
@@ -1407,9 +1604,73 @@ static void hud_draw_conquest_bases(
 		}
 
 		draw_string_set_draw_mode(font_index, NONE, 2 /* center */, 0, &color);
-		rasterizer_text_set_scale(CONQUEST_HUD_BADGE_SCALE, badge_center_x, (real)top_y);
+		rasterizer_text_set_scale(TERRITORIES_HUD_BADGE_SCALE, badge_center_x, (real)top_y);
 		rasterizer_draw_unicode_string(&bounds, NULL, NULL, 0, badge);
 		rasterizer_text_set_scale(1.0f, 0.0f, 0.0f);
+	}
+
+	/* --- Row 3: Lockdown Countdown Timer when a team controls all points --- */
+	{
+		long locking_team = territories_team_none;
+		long remaining_seconds = 0;
+
+		if (game_engine_territories_get_lockdown_status(&locking_team, &remaining_seconds) > 0 &&
+			(locking_team == territories_team_red || locking_team == territories_team_blue))
+		{
+			wchar_t timer_string[64];
+			rectangle2d timer_bounds;
+			real_argb_color timer_color;
+			real_argb_color shadow_color;
+			short timer_y = (short)(top_y + 11);
+
+			usprintf(
+				timer_string,
+				L"%s wins in : %02lds",
+				locking_team == territories_team_red ? L"Red Team" : L"Blue Team",
+				remaining_seconds);
+
+			timer_bounds.x0 = (short)(center_x - 120.0f);
+			timer_bounds.x1 = (short)(center_x + 120.0f);
+			timer_bounds.y0 = timer_y;
+			timer_bounds.y1 = (short)(timer_y + font_height + 20);
+
+			if (remaining_seconds <= 15)
+			{
+				/* Red warning in the final 15 seconds */
+				timer_color.alpha = 1.0f;
+				timer_color.red   = 1.0f;
+				timer_color.green = 0.22f;
+				timer_color.blue  = 0.22f;
+			}
+			else
+			{
+				/* Blue while more than 15 seconds remain */
+				timer_color.alpha = 1.0f;
+				timer_color.red   = 0.35f;
+				timer_color.green = 0.70f;
+				timer_color.blue  = 1.0f;
+			}
+
+			shadow_color.alpha = 0.85f;
+			shadow_color.red   = 0.0f;
+			shadow_color.green = 0.0f;
+			shadow_color.blue  = 0.0f;
+
+			/* Drop shadow offset by 1px */
+			timer_bounds.y0 += 1;
+			timer_bounds.y1 += 1;
+			draw_string_set_draw_mode(font_index, NONE, 2 /* center */, 0, &shadow_color);
+			rasterizer_text_set_scale(TERRITORIES_HUD_BADGE_SCALE, center_x + 1.0f, (real)timer_bounds.y0);
+			rasterizer_draw_unicode_string(&timer_bounds, NULL, NULL, 0, timer_string);
+
+			/* Timer text */
+			timer_bounds.y0 -= 1;
+			timer_bounds.y1 -= 1;
+			draw_string_set_draw_mode(font_index, NONE, 2 /* center */, 0, &timer_color);
+			rasterizer_text_set_scale(TERRITORIES_HUD_BADGE_SCALE, center_x, (real)timer_y);
+			rasterizer_draw_unicode_string(&timer_bounds, NULL, NULL, 0, timer_string);
+			rasterizer_text_set_scale(1.0f, 0.0f, 0.0f);
+		}
 	}
 
 	draw_string_set_format(NONE, 0, 0);
@@ -1606,7 +1867,7 @@ void hud_draw_screen(
 				hud_play_unit_sounds(player, hud_scripted_globals->show_hud);
 			}
 
-			hud_draw_conquest_bases();
+			hud_draw_territories_bases();
 		}
 		else
 		{

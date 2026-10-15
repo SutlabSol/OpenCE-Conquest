@@ -435,8 +435,8 @@ boolean playlist_profile_get_display_name(
 {
 	wchar_t *name;
 
-	/* port: conquest synthetic profile */
-	if (playlist_profile_index == CONQUEST_PLAYLIST_PROFILE_INDEX)
+	/* port: territories synthetic profile */
+	if (playlist_profile_index == TERRITORIES_PLAYLIST_PROFILE_INDEX)
 	{
 		ustrncpy(display_name, L"Territories", MAX_GAMENAME - 1);
 		display_name[MAX_GAMENAME - 1] = 0;
@@ -462,11 +462,11 @@ boolean playlist_profile_get(
 {
 	boolean success = FALSE;
 
-	/* port: conquest synthetic profile */
-	if (playlist_profile_index == CONQUEST_PLAYLIST_PROFILE_INDEX)
+	/* port: territories synthetic profile */
+	if (playlist_profile_index == TERRITORIES_PLAYLIST_PROFILE_INDEX)
 	{
 		struct game_variant temporary;
-		*variant = *build_game_variant_conquest(&temporary);
+		*variant = *build_game_variant_territories(&temporary);
 		ustrncpy(variant->human_readable_game_description, L"Territories", MAXIMUM_GAME_VARIANT_NAME_LENGTH - 1);
 		variant->human_readable_game_description[MAXIMUM_GAME_VARIANT_NAME_LENGTH - 1] = 0;
 		return TRUE;
@@ -513,8 +513,8 @@ boolean playlist_profile_get_options(
 {
 	byte block[SAVED_GAME_FILE_BLOCK_SIZE];
 
-	/* port: conquest synthetic profile */
-	if (playlist_profile_index == CONQUEST_PLAYLIST_PROFILE_INDEX)
+	/* port: territories synthetic profile */
+	if (playlist_profile_index == TERRITORIES_PLAYLIST_PROFILE_INDEX)
 	{
 		game_variant_options_default(NULL, options);
 		return TRUE;

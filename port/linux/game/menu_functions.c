@@ -4763,11 +4763,11 @@ static struct gametype_option const gametype_options[] =
 	{ "vehicles_respawn_spinner", _option_short, OPTIONS_FIELD(vehicle_respawn_time), 0, 7,
 		{ 0, 30, 60, 90, 120, 180, 300 } },
 	/* territories / conquest */
-	{ "territories_base_count_spinner", _option_long, VARIANT_FIELD(game_engine_variant.conquest.base_count), 0, 4,
+	{ "territories_base_count_spinner", _option_long, VARIANT_FIELD(game_engine_variant.territories.base_count), 0, 4,
 		{ 3, 4, 5, 6 } },
 	{ "territories_score_to_win_spinner", _option_long, VARIANT_FIELD(universal_variant.score_to_win), 0, 12,
 		{ 50, 75, 100, 150, 200, 250, 300, 400, 500, 750, 1000, 1500 } },
-	{ "conquest_base_count_spinner", _option_long, VARIANT_FIELD(game_engine_variant.conquest.base_count), 0, 4,
+	{ "conquest_base_count_spinner", _option_long, VARIANT_FIELD(game_engine_variant.territories.base_count), 0, 4,
 		{ 3, 4, 5, 6 } },
 	{ "conquest_score_to_win_spinner", _option_long, VARIANT_FIELD(universal_variant.score_to_win), 0, 12,
 		{ 50, 75, 100, 150, 200, 250, 300, 400, 500, 750, 1000, 1500 } },
@@ -5363,7 +5363,7 @@ static boolean gametype_engine_set(struct widget_instance *item)
 			variant->game_engine_index = engine_of_item[index];
 			if (variant->game_engine_index == 8)
 			{
-				variant->game_engine_variant.conquest.base_count = 5;
+				variant->game_engine_variant.territories.base_count = 5;
 				variant->universal_variant.score_to_win = 100;
 				variant->universal_variant.teams = 1;
 				variant->universal_variant.goal_radar = _radar_nav_point;
