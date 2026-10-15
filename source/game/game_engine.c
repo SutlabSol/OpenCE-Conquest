@@ -2004,6 +2004,145 @@ static boolean scoreboard_point_in(
 	return x >= rectangle->x0 && x < rectangle->x1 && y >= rectangle->y0 && y < rectangle->y1;
 }
 
+static void scoreboard_draw_territories_table_grid(
+	short bounds_left,
+	short top,
+	long line_height,
+	short col_left,
+	short col_width,
+	long grid_rows,
+	boolean is_team_columns,
+	long column_index,
+	real alpha)
+{
+	rectangle2d header_rect;
+	rectangle2d last_row_rect;
+	short table_bottom_y;
+	pixel32 header_bg;
+	pixel32 header_div_color;
+	pixel32 grid_color;
+	pixel32 border_color;
+	pixel32 zebra_color;
+	real a = PIN(alpha, 0.0f, 1.0f);
+	long d;
+	long r;
+	static short const div_offsets[] = { 0, 136, 203, 268, 341, 416, 501, 560 };
+
+	if (grid_rows < 1)
+		grid_rows = 1;
+
+	scoreboard_rectangle(&header_rect, bounds_left, top, line_height, col_left, col_width, 1, 1);
+	scoreboard_rectangle(&last_row_rect, bounds_left, top, line_height, col_left, col_width, 2 + grid_rows - 1, 1);
+	table_bottom_y = last_row_rect.y1;
+
+	/* Team-themed header background and borders */
+	if (is_team_columns)
+	{
+		if (column_index == 0) /* Red Team */
+		{
+			header_bg = ((pixel32)(long)(90 * a) << 24) | 0x00551515;
+			border_color = ((pixel32)(long)(120 * a) << 24) | 0x00D04848;
+		}
+		else /* Blue Team */
+		{
+			header_bg = ((pixel32)(long)(90 * a) << 24) | 0x00152555;
+			border_color = ((pixel32)(long)(120 * a) << 24) | 0x004870D0;
+		}
+	}
+	else
+	{
+		header_bg = ((pixel32)(long)(80 * a) << 24) | 0x00202835;
+		border_color = ((pixel32)(long)(100 * a) << 24) | 0x008090A5;
+	}
+
+	header_div_color = ((pixel32)(long)(110 * a) << 24) | 0x00FFFFFF;
+	grid_color = ((pixel32)(long)(45 * a) << 24) | 0x00FFFFFF;
+	zebra_color = ((pixel32)(long)(18 * a) << 24) | 0x00FFFFFF;
+
+	/* 1. Header row background banner */
+	draw_quad(&header_rect, header_bg);
+
+	/* 2. Alternating zebra row shading */
+	for (r = 0; r < grid_rows; r++)
+	{
+		if (r % 2 == 1)
+		{
+			rectangle2d row_rect;
+			scoreboard_rectangle(&row_rect, bounds_left, top, line_height, col_left, col_width, 2 + r, 1);
+			draw_quad(&row_rect, zebra_color);
+		}
+	}
+
+	/* 3. Horizontal lines */
+	/* Top border above header */
+	{
+		rectangle2d top_line;
+		top_line.x0 = header_rect.x0;
+		top_line.x1 = header_rect.x1;
+		top_line.y0 = header_rect.y0;
+		top_line.y1 = (short)(header_rect.y0 + 1);
+		draw_quad(&top_line, border_color);
+	}
+	/* Prominent divider below header row */
+	{
+		rectangle2d div_line;
+		div_line.x0 = header_rect.x0;
+		div_line.x1 = header_rect.x1;
+		div_line.y0 = header_rect.y1;
+		div_line.y1 = (short)(header_rect.y1 + 1);
+		draw_quad(&div_line, header_div_color);
+	}
+	/* Row dividers between player rows */
+	for (r = 0; r < grid_rows; r++)
+	{
+		rectangle2d row_rect;
+		scoreboard_rectangle(&row_rect, bounds_left, top, line_height, col_left, col_width, 2 + r, 1);
+		if (r < grid_rows - 1)
+		{
+			rectangle2d r_line;
+			r_line.x0 = header_rect.x0;
+			r_line.x1 = header_rect.x1;
+			r_line.y0 = row_rect.y1;
+			r_line.y1 = (short)(row_rect.y1 + 1);
+			draw_quad(&r_line, grid_color);
+		}
+		else
+		{
+			/* Bottom border */
+			rectangle2d bot_line;
+			bot_line.x0 = header_rect.x0;
+			bot_line.x1 = header_rect.x1;
+			bot_line.y0 = row_rect.y1;
+			bot_line.y1 = (short)(row_rect.y1 + 1);
+			draw_quad(&bot_line, border_color);
+		}
+	}
+
+	/* 4. Vertical column divider lines */
+	for (d = 0; d < (long)NUMBEROF(div_offsets); d++)
+	{
+		real current_scale = 0.55f;
+		short screen_x = (short)(bounds_left + (col_left + div_offsets[d] - bounds_left) * current_scale);
+		rectangle2d v_line;
+
+		v_line.x0 = screen_x;
+		v_line.x1 = (short)(screen_x + 1);
+		v_line.y0 = header_rect.y0;
+		v_line.y1 = (short)(table_bottom_y + 1);
+
+		if (d == 0 || d == (long)NUMBEROF(div_offsets) - 1)
+		{
+			/* Outer side borders */
+			draw_quad(&v_line, border_color);
+		}
+		else
+		{
+			/* Inner column dividers */
+			draw_quad(&v_line, grid_color);
+		}
+	}
+}
+
 /* the item picked, done */
 static void scoreboard_menu_pick(
 	short item)
@@ -2306,6 +2445,25 @@ static void game_engine_rasterize_scoreboard(
 
 		for (column = 0; column < columns; column++)
 		{
+			short col_left = (short)(left + column * (column_width + column_gap));
+
+			if (game_engine_is_territories())
+			{
+				long grid_rows = team_columns ? MIN(rows, MAX(list_counts[0], list_counts[1])) :
+					(scoreboard_scroll < list_counts[0] ? MIN(rows, list_counts[0] - scoreboard_scroll) : 1);
+
+				scoreboard_draw_territories_table_grid(
+					bounds.x0,
+					top,
+					line_height,
+					col_left,
+					column_width,
+					grid_rows,
+					team_columns,
+					column,
+					alpha);
+			}
+
 			/* (a team column's heading in its team's colour, brightened) */
 			if (team_columns)
 			{
@@ -2320,7 +2478,7 @@ static void game_engine_rasterize_scoreboard(
 				color.red = color.green = color.blue = 0.5f;
 			}
 			scoreboard_draw_row(row_string, FALSE, &color, 1, top,
-				(short)(left + column * (column_width + column_gap)), TRUE);
+				col_left, TRUE);
 		}
 	}
 

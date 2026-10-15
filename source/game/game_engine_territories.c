@@ -828,7 +828,7 @@ static void territories_engine_update(
 				long previous_lockdown = territories_globals.lockdown_ticks[team_index];
 				territories_globals.lockdown_ticks[team_index]++;
 
-				/* Audio warning alerts: 60 seconds at start, 30 seconds at 30s, and chime at 10s remaining */
+				/* Audio warning alerts: 60 seconds at start, 30 seconds at 30s, and chime each second of the last 10s */
 				if (previous_lockdown == 0 && territories_globals.lockdown_ticks[team_index] > 0)
 				{
 					game_engine_play_multiplayer_sound(_territories_sound_60_seconds);
@@ -837,7 +837,9 @@ static void territories_engine_update(
 				{
 					game_engine_play_multiplayer_sound(_territories_sound_30_seconds);
 				}
-				else if (previous_lockdown < 50 * TICKS_PER_SECOND && territories_globals.lockdown_ticks[team_index] >= 50 * TICKS_PER_SECOND)
+				else if (territories_globals.lockdown_ticks[team_index] >= 50 * TICKS_PER_SECOND &&
+				         territories_globals.lockdown_ticks[team_index] < 60 * TICKS_PER_SECOND &&
+				         territories_globals.lockdown_ticks[team_index] / TICKS_PER_SECOND > previous_lockdown / TICKS_PER_SECOND)
 				{
 					game_engine_play_multiplayer_sound(_territories_sound_ting);
 				}
@@ -1111,7 +1113,8 @@ boolean game_engine_territories_read_network_state(
 			{
 				game_engine_play_multiplayer_sound(_territories_sound_30_seconds);
 			}
-			else if (prev < 50 * TICKS_PER_SECOND && curr >= 50 * TICKS_PER_SECOND)
+			else if (curr >= 50 * TICKS_PER_SECOND && curr < 60 * TICKS_PER_SECOND &&
+			         curr / TICKS_PER_SECOND > prev / TICKS_PER_SECOND)
 			{
 				game_engine_play_multiplayer_sound(_territories_sound_ting);
 			}

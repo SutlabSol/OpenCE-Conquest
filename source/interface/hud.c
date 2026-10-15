@@ -95,6 +95,7 @@ symbols in this file:
 #include "interface/weapon_hud_interface_definition.h"
 #include "items/weapon_definitions.h"
 #include "items/weapons.h"
+#include "main/main.h"
 #include "memory/data.h"
 #include "objects/object_definitions.h"
 #include "objects/objects.h"
@@ -1361,6 +1362,60 @@ static void territories_hud_draw_solid_quad(
 	rasterizer_psuedo_dynamic_screen_quad_draw(&parameters, vertices);
 }
 
+static boolean hud_string_contains_case_insensitive(
+	char const *haystack,
+	char const *needle)
+{
+	if (!haystack || !needle)
+		return FALSE;
+
+	for (; *haystack; haystack++)
+	{
+		char const *h = haystack;
+		char const *n = needle;
+		while (*h && *n)
+		{
+			char ch_h = *h;
+			char ch_n = *n;
+			if (ch_h >= 'A' && ch_h <= 'Z')
+				ch_h += 'a' - 'A';
+			if (ch_n >= 'A' && ch_n <= 'Z')
+				ch_n += 'a' - 'A';
+			if (ch_h != ch_n)
+				break;
+			h++;
+			n++;
+		}
+		if (!*n)
+			return TRUE;
+	}
+
+	return FALSE;
+}
+
+static boolean hud_is_bigass_map(
+	void)
+{
+	char const *name;
+
+	if (global_scenario_index != NONE)
+	{
+		name = tag_get_name(global_scenario_index);
+		if (name && hud_string_contains_case_insensitive(name, "bigass"))
+			return TRUE;
+	}
+
+	name = main_get_multiplayer_map_name();
+	if (name && hud_string_contains_case_insensitive(name, "bigass"))
+		return TRUE;
+
+	name = main_get_map_name();
+	if (name && hud_string_contains_case_insensitive(name, "bigass"))
+		return TRUE;
+
+	return FALSE;
+}
+
 static void hud_draw_territories_bases(
 	void)
 {
@@ -1376,6 +1431,7 @@ static void hud_draw_territories_bases(
 	short top_y;
 	real start_x;
 	long i;
+	short y_offset;
 
 	if (!game_engine_is_territories() || !hud_scripted_globals->show_hud || cinematic_in_progress())
 		return;
@@ -1405,6 +1461,7 @@ static void hud_draw_territories_bases(
 		-render.camera.viewport_bounds.y0);
 
 	center_x = (window_bounds.x0 + window_bounds.x1) / 2.0f;
+	y_offset = hud_is_bigass_map() ? 30 : 0;
 
 	/* --- Row 1: Team Ticket Numbers and Depleting Horizontal Ticket Bars --- */
 	{
@@ -1414,7 +1471,7 @@ static void hud_draw_territories_bases(
 		real red_fraction = starting_tickets > 0 ? PIN((real)red_tickets / (real)starting_tickets, 0.0f, 1.0f) : 0.0f;
 		real blue_fraction = starting_tickets > 0 ? PIN((real)blue_tickets / (real)starting_tickets, 0.0f, 1.0f) : 0.0f;
 
-		real bar_y0 = (real)(window_bounds.y0 + 3);
+		real bar_y0 = (real)(window_bounds.y0 + 3 + y_offset);
 		real bar_y1 = bar_y0 + TERRITORIES_HUD_BAR_HEIGHT;
 
 		real red_bar_right = center_x - TERRITORIES_HUD_BAR_GAP;
@@ -1438,7 +1495,7 @@ static void hud_draw_territories_bases(
 		rectangle2d num_bounds;
 		real red_text_center_x = red_bar_left - 18.0f;
 		real blue_text_center_x = blue_bar_right + 18.0f;
-		short ticket_text_y = (short)(window_bounds.y0 + 1);
+		short ticket_text_y = (short)(window_bounds.y0 + 1 + y_offset);
 
 		track_color.alpha = 0.55f;
 		track_color.red = 0.05f;
@@ -1524,7 +1581,7 @@ static void hud_draw_territories_bases(
 	}
 
 	/* --- Row 2: Capture Point Badges [A] [B] [C] [D] --- */
-	top_y = (short)(window_bounds.y0 + 11);
+	top_y = (short)(window_bounds.y0 + 11 + y_offset);
 	start_x = center_x - ((base_count - 1) * TERRITORIES_HUD_BADGE_SPACING) / 2.0f;
 
 	for (i = 0; i < base_count; i++)
