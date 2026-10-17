@@ -294,7 +294,7 @@ enum effect_definition_flags
 /* ---------- macros */
 
 #define match_assert_valid_real_rgb_color(file, line, rgb) \
-	match_vassert( \
+	match_vwarn( \
 		file, \
 		line, \
 		valid_real_rgb_color(rgb), \

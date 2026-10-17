@@ -1465,11 +1465,17 @@ static void hud_draw_territories_bases(
 
 	/* --- Row 1: Team Ticket Numbers and Depleting Horizontal Ticket Bars --- */
 	{
-		long red_tickets = game_engine_territories_get_tickets(territories_team_red);
-		long blue_tickets = game_engine_territories_get_tickets(territories_team_blue);
-		long starting_tickets = game_engine_territories_get_starting_tickets();
-		real red_fraction = starting_tickets > 0 ? PIN((real)red_tickets / (real)starting_tickets, 0.0f, 1.0f) : 0.0f;
-		real blue_fraction = starting_tickets > 0 ? PIN((real)blue_tickets / (real)starting_tickets, 0.0f, 1.0f) : 0.0f;
+		long red_tickets = labs(game_engine_territories_get_tickets(territories_team_red));
+		long blue_tickets = labs(game_engine_territories_get_tickets(territories_team_blue));
+		long starting_tickets = labs(game_engine_territories_get_starting_tickets());
+		real red_fraction;
+		real blue_fraction;
+
+		if (starting_tickets <= 0)
+			starting_tickets = 200;
+
+		red_fraction = PIN((real)red_tickets / (real)starting_tickets, 0.0f, 1.0f);
+		blue_fraction = PIN((real)blue_tickets / (real)starting_tickets, 0.0f, 1.0f);
 
 		real bar_y0 = (real)(window_bounds.y0 + 3 + y_offset);
 		real bar_y1 = bar_y0 + TERRITORIES_HUD_BAR_HEIGHT;
@@ -1682,8 +1688,7 @@ static void hud_draw_territories_bases(
 
 			usprintf(
 				timer_string,
-				L"%s wins in : %02lds",
-				locking_team == territories_team_red ? L"Red Team" : L"Blue Team",
+				locking_team == territories_team_red ? L"Red Team wins in : %02lds" : L"Blue Team wins in : %02lds",
 				remaining_seconds);
 
 			timer_bounds.x0 = (short)(center_x - 120.0f);

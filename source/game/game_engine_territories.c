@@ -933,10 +933,12 @@ static wchar_t *territories_get_team_score_string(
 	long team_index,
 	wchar_t *buffer)
 {
+	long tickets = (team_index == territories_team_red || team_index == territories_team_blue) ?
+		labs(territories_globals.tickets[team_index]) : 0;
 	usprintf(
 		buffer,
-		L"%d",
-		(team_index == territories_team_red || team_index == territories_team_blue) ? territories_globals.tickets[team_index] : 0);
+		L"%ld",
+		tickets);
 
 	return buffer;
 }
@@ -1426,7 +1428,7 @@ long game_engine_territories_get_tickets(
 	long team_index)
 {
 	if (team_index == territories_team_red || team_index == territories_team_blue)
-		return territories_globals.tickets[team_index];
+		return labs(territories_globals.tickets[team_index]);
 	return 0;
 }
 
@@ -1435,7 +1437,7 @@ long game_engine_territories_get_starting_tickets(
 {
 	struct game_variant const *variant = game_engine_get_variant();
 	if (variant && variant->universal_variant.score_to_win > 0)
-		return variant->universal_variant.score_to_win;
+		return labs(variant->universal_variant.score_to_win);
 	return TERRITORIES_STARTING_TICKETS;
 }
 

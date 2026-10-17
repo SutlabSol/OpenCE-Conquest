@@ -890,6 +890,19 @@ void _rasterizer_environment_lightmap_draw(
 				1.0f,
 				(real_vector3d *)&plasma_off_color);
 
+			primary_color.red = PIN(primary_color.red, 0.0f, 1.0f);
+			primary_color.green = PIN(primary_color.green, 0.0f, 1.0f);
+			primary_color.blue = PIN(primary_color.blue, 0.0f, 1.0f);
+			secondary_color.red = PIN(secondary_color.red, 0.0f, 1.0f);
+			secondary_color.green = PIN(secondary_color.green, 0.0f, 1.0f);
+			secondary_color.blue = PIN(secondary_color.blue, 0.0f, 1.0f);
+			plasma_on_color.red = PIN(plasma_on_color.red, 0.0f, 1.0f);
+			plasma_on_color.green = PIN(plasma_on_color.green, 0.0f, 1.0f);
+			plasma_on_color.blue = PIN(plasma_on_color.blue, 0.0f, 1.0f);
+			plasma_off_color.red = PIN(plasma_off_color.red, 0.0f, 1.0f);
+			plasma_off_color.green = PIN(plasma_off_color.green, 0.0f, 1.0f);
+			plasma_off_color.blue = PIN(plasma_off_color.blue, 0.0f, 1.0f);
+
 			csmemset(&pixel_shader, 0, sizeof(pixel_shader));
 			pixel_shader.texture_modes =
 				rasterizer_environment_globals.lightmap_missing

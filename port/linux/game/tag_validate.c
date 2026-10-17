@@ -718,7 +718,10 @@ static void validate_value(
 		if (!string_valid(validation, reference->name))
 		{
 			if (reference->index != NONE)
+			{
 				tag_validate_correct(validation, "has a name outside the tags: none");
+				reference->index = NONE;
+			}
 			reference->name = (char *)tag_validate_empty_name;
 		}
 		validate_tag_index(validation, &reference->index, &reference->group_tag, field->definition);

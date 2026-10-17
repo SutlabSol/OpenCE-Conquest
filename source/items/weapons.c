@@ -596,7 +596,7 @@ static void weapon_precache_projectile_trails(
 			struct weapon_trigger_definition *trigger = TAG_BLOCK_GET_ELEMENT(
 				&definition->weapon.triggers, trigger_index, struct weapon_trigger_definition);
 
-			if (trigger->projectile.index != NONE)
+			if (trigger->projectile.group_tag == PROJECTILE_DEFINITION_TAG && trigger->projectile.index != NONE)
 			{
 				struct projectile_definition *projectile = projectile_definition_get(trigger->projectile.index);
 				short attachment_index;

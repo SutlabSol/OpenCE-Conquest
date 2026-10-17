@@ -1494,7 +1494,7 @@ void *tag_get(
 	char returned_group[16];
 
 	struct cache_file_tag_instance *tag_instance = cache_get_tag_instance(tag_index);
-	match_vassert(
+	match_vwarn(
 		"c:\\halo\\SOURCE\\cache\\cache_files.c",
 		298,
 		tag_instance->group_tag == group_tag ||
@@ -1507,11 +1507,11 @@ void *tag_get(
 			tag_to_string(tag_instance->group_tag, returned_group),
 			tag_index)
 	);
-	match_vassert(
+	match_vwarn(
 		"c:\\halo\\SOURCE\\cache\\cache_files.c",
 		302,
 		tag_instance->base_address,
-		csprintf(temporary, "can't get() a tag with a base address!")
+		csprintf(temporary, "can't get() a tag without a base address!")
 	);
 	/* port: a tag of another group (one a map's data named, which nothing
 	checked) is not read as this one: the empty tag's data is given, as

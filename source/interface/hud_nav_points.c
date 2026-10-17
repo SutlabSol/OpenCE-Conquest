@@ -928,9 +928,9 @@ void custom_render_nav_point(
 					}
 				}
 
-				rgb_temp.red *= PIN(fade, 0.0f, 1.0f);
-				rgb_temp.green *= PIN(fade, 0.0f, 1.0f);
-				rgb_temp.blue *= PIN(fade, 0.0f, 1.0f);
+				rgb_temp.red = PIN(rgb_temp.red * PIN(fade, 0.0f, 1.0f), 0.0f, 1.0f);
+				rgb_temp.green = PIN(rgb_temp.green * PIN(fade, 0.0f, 1.0f), 0.0f, 1.0f);
+				rgb_temp.blue = PIN(rgb_temp.blue * PIN(fade, 0.0f, 1.0f), 0.0f, 1.0f);
 
 				if (waypoint_type != _waypoint_off_screen)
 				{
@@ -1002,9 +1002,9 @@ void custom_render_nav_point(
 							text_bounds.y1 = (short)(text_y + font_h + 10);
 
 							text_argb.alpha = PIN(fade, 0.0f, 1.0f);
-							text_argb.red = 1.0f;
-							text_argb.green = 1.0f;
-							text_argb.blue = 1.0f;
+							text_argb.red = rgb_temp.red;
+							text_argb.green = rgb_temp.green;
+							text_argb.blue = rgb_temp.blue;
 
 							draw_string_set_draw_mode(font_index, NONE, 2 /* center */, 0, &text_argb);
 							rasterizer_text_set_scale(text_scale, (real)point.x, text_y);
@@ -1052,9 +1052,9 @@ void custom_render_nav_point(
 						rgb_temp.blue = 0.1f;
 					}
 
-					rgb_temp.red *= PIN(fade, 0.0f, 1.0f);
-					rgb_temp.green *= PIN(fade, 0.0f, 1.0f);
-					rgb_temp.blue *= PIN(fade, 0.0f, 1.0f);
+					rgb_temp.red = PIN(rgb_temp.red * PIN(fade, 0.0f, 1.0f), 0.0f, 1.0f);
+					rgb_temp.green = PIN(rgb_temp.green * PIN(fade, 0.0f, 1.0f), 0.0f, 1.0f);
+					rgb_temp.blue = PIN(rgb_temp.blue * PIN(fade, 0.0f, 1.0f), 0.0f, 1.0f);
 
 					hud_draw_bitmap_direct(
 						bitmap,

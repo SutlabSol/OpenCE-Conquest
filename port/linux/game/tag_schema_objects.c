@@ -734,7 +734,7 @@ static struct tag_schema_field const weapon_trigger_fields[] =
 	TAG_SCHEMA_REFERENCE(struct weapon_trigger_definition, charging_effect, TAG_SCHEMA_GROUPS('effe', 'snd!')),
 	TAG_SCHEMA_ENUM(struct weapon_trigger_definition, projectile_distribution_function,
 		NUMBER_OF_PROJECTILE_DISTRIBUTION_FUNCTIONS, 0),
-	TAG_SCHEMA_REFERENCE(struct weapon_trigger_definition, projectile, TAG_SCHEMA_GROUPS('obje')),
+	TAG_SCHEMA_REFERENCE(struct weapon_trigger_definition, projectile, TAG_SCHEMA_GROUPS('proj')),
 	TAG_SCHEMA_BLOCK(struct weapon_trigger_definition, firing_effects, weapon_firing_effect_schema,
 		MAXIMUM_FIRING_EFFECTS_PER_TRIGGER),
 	TAG_SCHEMA_END
